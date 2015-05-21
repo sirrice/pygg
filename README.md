@@ -43,7 +43,7 @@ Usage (command line and in Python)
 
         runpyplot.py --help
         runpyplot.py -c "ggplot('diamonds', aes('carat', 'price')) + geom_point()" -o test.pdf
-        runpyplot.py -c "ggplot('diamonds', aes('carat', 'price')) + geom_point() + data_csv('foo')" -o test.pdf
+        runpyplot.py -c "ggplot('diamonds', aes('carat', 'price')) + geom_point()" -csv foo.csv
         
 
 Also, see `tests/example.py` for example Python usage
