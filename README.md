@@ -22,32 +22,50 @@ Setup
 
 * install R 
 
-        # on osx
-        brew install R
+```bash
+# on osx
+brew install R
 
-        # on unix e.g., ubuntu
-        sudo apt-get install R
+# on unix e.g., ubuntu
+sudo apt-get install R
+```
 
 * install ggplot2 (run the following in the R shell)
 
-        install.packages("ggplot2") 
-        install.packages("RPostgreSQL")
+```r
+install.packages("ggplot2") 
+install.packages("RPostgreSQL")
+```
         
 
 
 Install
 
-        pip install pyplot
+```bash
+pip install pyplot
+```
 
-Usage (command line and in Python)
+Command line usage 
 
-        runpyplot.py --help
-        runpyplot.py -c "ggplot('diamonds', aes('carat', 'price')) + geom_point()" -o test.pdf
-        runpyplot.py -c "ggplot('diamonds', aes('carat', 'price')) + geom_point()" -csv foo.csv
+```bash
+runpyplot.py --help
+runpyplot.py -c "ggplot('diamonds', aes('carat', 'price')) + geom_point()" -o test.pdf
+runpyplot.py -c "ggplot('diamonds', aes('carat', 'price')) + geom_point()" -csv foo.csv
+```
+
+For Python usage, see `tests/example.py` 
+
+```python
+from pyplot import *
+
+# Example using diamonds dataset (comes with ggplot2)
+p = ggplot('diamonds', aes('carat', y='price'))
+g = geom_point() + facet_wrap(None, "color")
+(p+g).save("test1.pdf")
+```
+
+
         
-
-Also, see `tests/example.py` for example Python usage
-
 
 Questions 
 ===============
