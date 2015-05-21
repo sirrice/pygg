@@ -237,7 +237,7 @@ data = dbGetQuery(con, q)
   return cmd
 
 def data_csv(fname, *args, **kwargs):
-  return GGStatement("read.csv", fname, *args, **kwargs)
+  return "data = %s" % GGStatement("read.csv", fname, *args, **kwargs).r
 
 
 def facet_wrap(x, y, *args, **kwargs):
