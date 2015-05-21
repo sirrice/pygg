@@ -77,3 +77,8 @@ python, works with numpy data structures, and renders using matplotlib.
 `pyplot` exists partly due to personal preference, and partly because
 the R version of ggplot2 is more mature, and its layout algorithms are
 really really good.
+**
+Why not use [pyggplot](pypi.python.org/pypi/pyggplot/)?**Pyggplot does not adhere
+strictly to R's ggplot syntax but pythonifies it, making it harder to transpose
+ggplot2 examples.
+
