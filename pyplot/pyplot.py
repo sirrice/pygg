@@ -224,8 +224,6 @@ def data_sql(db, sql):
 
   cmd = """
 library(RPostgreSQL)
-library(RColorBrewer)
-cbPalette <- brewer.pal(8, "Dark2")
 drv = dbDriver('PostgreSQL')
 con = dbConnect(drv, dbname='%(db_name)s')
 q = "%(query)s"
