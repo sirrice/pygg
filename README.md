@@ -30,4 +30,4 @@ Usage (command line and in Python)
         pyplot.py --help
         
 
-Also, see `pyplot/tests/example.py` for example Python usage
+Also, see `tests/example.py` for example Python usage
