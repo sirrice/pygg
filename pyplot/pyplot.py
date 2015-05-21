@@ -1,5 +1,11 @@
+import os
 import click
+import re
 import subprocess
+from collections import defaultdict
+
+quote1re = re.compile("\"")
+quote2re = re.compile("'")
 
 class GGStatement(object):
   def __init__(self, name, *args, **kwargs):
@@ -57,7 +63,13 @@ class GGStatements(object):
   def __add__(self, o):
     if not o: return self
     stmts = list(self.stmts)
-    stmts.extend(o.to_stmts().stmts)
+    try:
+      stmts.extend(o.to_stmts().stmts)
+    except:
+      if isinstance(o, list):
+        stmts.extend(o)
+      else:
+        stmts.append(o)
     return GGStatements(stmts)
 
   @property
@@ -68,24 +80,31 @@ class GGStatements(object):
     return self.r
 
   def save(self, name, *args, **kwargs):
+    """
+    @param name output file name.  if None, don't run R command
+    @param kwargs keyword args to pass to ggsave.  The following are special
+           keywords for the python save method
+
+      prefix: string containing R code to run before the ggplot command
+      quiet:  if Truthy, don't print out R program string
+
+    """
     kwdefaults = {
       'width': 10,
       'height': 8,
       'scale': 1
     }
-    keys_to_rm = ["prefix"]
+    keys_to_rm = ["prefix", "quiet"]
     varname = "p"
     header = "library(ggplot2)"
 
-
     kwargs = dict([(k,v) for k,v in kwargs.items() if v is not None])
     prefix = kwargs.get('prefix', '')
+    quiet = kwargs.get("quiet", False)
     for key in keys_to_rm:
       if key in kwargs: del kwargs[key]
     kwdefaults.update(kwargs)
     kwargs = kwdefaults
-
-
 
     prog = "%(header)s\n%(prefix)s\n%(varname)s = %(prog)s" % {
       'header': header,
@@ -98,8 +117,9 @@ class GGStatements(object):
       stmt = GGStatement("ggsave", "'%s'" % name, varname, *args, **kwargs)
       prog = "%s\n%s" % (prog, stmt.r)
 
-    print prog
-    print
+    if not quiet:
+      print prog
+      print
 
     if not name: return prog
 
@@ -107,9 +127,11 @@ class GGStatements(object):
     input_cmd = ["echo", prog]
     input_proc = subprocess.Popen(input_cmd, stdout=subprocess.PIPE)
     r_cmd = "R --no-save --quiet"
+    FNULL = open(os.devnull, 'w')
     subprocess.call(r_cmd, 
                     stdin=input_proc.stdout, 
-                    #stderr=subprocess.STDOUT,
+                    stdout=FNULL,
+                    stderr=subprocess.STDOUT,
                     shell=True)
     return prog
 
@@ -216,6 +238,7 @@ position_stack = mkfunc("position_stack")
 position_jitter = mkfunc("position_jitter")
 
 def data_sql(db, sql):
+  "Load file using RPostgreSQL"
   if not db:
     if sql:
       print "ERR: -db option must be set if using -sql"
@@ -223,11 +246,11 @@ def data_sql(db, sql):
 
 
   cmd = """
-library(RPostgreSQL)
-drv = dbDriver('PostgreSQL')
-con = dbConnect(drv, dbname='%(db_name)s')
-q = "%(query)s"
-data = dbGetQuery(con, q)
+    library(RPostgreSQL)
+    drv = dbDriver('PostgreSQL')
+    con = dbConnect(drv, dbname='%(db_name)s')
+    q = "%(query)s"
+    data = dbGetQuery(con, q)
   """ % {
     'db_name' : db,
     'query' : sql
@@ -235,7 +258,64 @@ data = dbGetQuery(con, q)
   return cmd
 
 def data_csv(fname, *args, **kwargs):
+  "Load csv file using read.csv"
   return "data = %s" % GGStatement("read.csv", fname, *args, **kwargs).r
+
+def data_py(o, *args, **kwargs):
+  """
+  converts python object into R Dataframe definition
+  converts following data structures:
+
+    row oriented list of dictionaries:
+
+        [ { 'x': 0, 'y': 1, ...}, ... ]
+
+    col oriented dictionary of lists
+
+        { 'x': [0,1,2...], 'y': [...], ... }
+
+  @param o python object to convert
+  @param args argument list to pass to data.frame
+  @param kwargs keyword args to pass to data.frame
+  @return expression to define data.frame object and set it to variable "data"
+        
+        data = data.frame(cbind(..yourdata..), *args, **kwargs)
+  """
+
+  def totext(v): 
+    if v is None: 
+      return "NA"
+    if isinstance(v, basestring): 
+      v = quote1re.sub("\\\"", v)
+      v = quote2re.sub("\\'", v)
+      return "'%s'" % v
+    return str(v)
+
+  def l2rtext(l):
+    "translate list of python primitives into list definition in R"
+    return "c(%s)" % ", ".join(map(totext, l))
+
+  # convert row to col
+  if isinstance(o, list):
+    newo = defaultdict(list)
+    keys = set()
+    map(keys.update, [d.keys() for d in o])
+    for d in o:
+      for key in keys:
+        newo[key].append(d.get(key, None))
+    o = newo
+
+
+  defs = []
+  for col, vals in o.iteritems():
+    stmt = "%s = %s" % (col, l2rtext(vals))
+    defs.append(stmt)
+  data_arg = "cbind(%s)" % ", ".join(defs)
+
+  return "data = %s" % GGStatement("data.frame", data_arg, *args, **kwargs).r
+
+
+
 
 
 def facet_wrap(x, y, *args, **kwargs):
@@ -263,6 +343,5 @@ def facet_grid(x, y, *args, **kwargs):
   return GGStatement("facet_grid", facets, *args, **kwargs)
 
     
-
 
 

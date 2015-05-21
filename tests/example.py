@@ -11,4 +11,12 @@ p = ggplot('data', aes(x='epoch', y='temp', color='sensor'))
 prefix = data_sql("intel", "SELECT epoch, temp, sensor, 1 AS color FROM readingssmall")
 (p+g).save("test2.pdf", prefix=prefix)
 
+p = ggplot('data', aes(x='epoch', y='temp', color='sensor'))
+prefix = data_sql("intel", "SELECT epoch, temp, sensor, 1 AS color FROM readingssmall")
+(p+g).save("test2.pdf", prefix=prefix)
+
+p = ggplot('data', aes('x', 'y'))
+prefix = data_py({'x': range(10), 'y': range(10, 20)})
+(p+g).save("test3.pdf", prefix=prefix, quiet=True)
+
 

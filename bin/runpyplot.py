@@ -37,12 +37,12 @@ def main(c, prefix, csv, db, sql, o, w, h, scale):
     p = p + facet_wrap(None, "color")
 
     \b
-    # set prefix so that 'diamonds' is loaded in R
-    prefix = \"\"\" ...R code to load data into diamonds variable...  \"\"\"
+    # prefix argument is a string to execute before running ggplot and ggsave commands
+    prefix = \"\"\"diamonds =  ...R code to load data...  \"\"\"
     p.save("test.pdf", prefix=prefix)
 
 
-  Use convenience functions for loading data from postgres or a CSV
+  Use convenience functions generate prefix string for loading data
 
     \b
     # load from database query
@@ -51,6 +51,18 @@ def main(c, prefix, csv, db, sql, o, w, h, scale):
     \b
     # load from CSV file.  Takse same arguments as R's read.csv
     prefix = data_csv("FILENAME", sep=',')
+
+    \b
+    # load column or row oriented python object.  Run help(data_py) for more details
+    prefix = data_py({'x': [0,1,2], 'y': [9,8,7]})
+    prefix = data_py([{'x': 0, 'y': 1}, {'x': 2, 'y': 3})
+
+
+  Example commands
+
+    \b
+    python pyplot -db database -sql "SELECT x,y FROM T" -c "ggplot('data', aes('x', 'y')) + geom_point()"
+    python pyplot -csv mydata.csv -c "ggplot('data', aes(x='attr1', y='attr2')) + geom_point()"
 
 
   Caveats: Does not copy and import data between python and R, so pyplot depends on setting the prefix to load the appropriate data into an R variable so that ggplot can load it:

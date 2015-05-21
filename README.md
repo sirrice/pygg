@@ -51,6 +51,7 @@ Command line usage
 runpyplot.py --help
 runpyplot.py -c "ggplot('diamonds', aes('carat', 'price')) + geom_point()" -o test.pdf
 runpyplot.py -c "ggplot('diamonds', aes('carat', 'price')) + geom_point()" -csv foo.csv
+
 ```
 
 For Python usage, see `tests/example.py` 
