@@ -80,5 +80,5 @@ really really good.
 **
 Why not use [pyggplot](pypi.python.org/pypi/pyggplot/)?**Pyggplot does not adhere
 strictly to R's ggplot syntax but pythonifies it, making it harder to transpose
-ggplot2 examples.
+ggplot2 examples. Also pyggplot requires rpy2.
 
