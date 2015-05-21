@@ -30,7 +30,7 @@ brew install R
 sudo apt-get install R
 ```
 
-* install ggplot2 (run the following in the R shell)
+* install R packages (run the following in the R shell)
 
 ```r
 install.packages("ggplot2") 
