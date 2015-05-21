@@ -79,7 +79,7 @@ python, works with numpy data structures, and renders using matplotlib.
 the R version of ggplot2 is more mature, and its layout algorithms are
 really really good.
 
-* **[pyggplot](pypi.python.org/pypi/pyggplot/)**: Pyggplot does not adhere
+* **[pyggplot](http://pypi.python.org/pypi/pyggplot/)**: Pyggplot does not adhere
 strictly to R's ggplot syntax but pythonifies it, making it harder to transpose
 ggplot2 examples. Also pyggplot requires rpy2.
 
