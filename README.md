@@ -1,7 +1,7 @@
 pyplot
 =================
 
-ggplot2 syntax in python, runs R
+ggplot2 syntax in python.  Actually wrapper around Wickham's ggplot2 in R
 
 pyplot allows you to use ggplot2 syntax nearly verbatim in Python,
 and execute the ggplot program in R.  Since this is just a wrapper
