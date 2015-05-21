@@ -41,7 +41,8 @@ Install
 
 Usage (command line and in Python)
 
-        pyplot.py --help
+        runpyplot.py --help
+        runpyplot.py -c "ggplot('diamonds', aes('carat', 'price')) + geom_point()" -o test.pdf
         
 
 Also, see `tests/example.py` for example Python usage

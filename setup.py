@@ -18,7 +18,7 @@ setup(name="pyplot",
       include_package_data = True,      
       package_dir = {'pyplot' : 'pyplot'},
       scripts = [
-        'bin/pyplot.py'
+        'bin/runpyplot.py'
       ],
       install_requires = [
         'click'

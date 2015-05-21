@@ -98,10 +98,10 @@ class GGStatements(object):
       stmt = GGStatement("ggsave", "'%s'" % name, varname, *args, **kwargs)
       prog = "%s\n%s" % (prog, stmt.r)
 
-    if not name: return prog
     print prog
     print
 
+    if not name: return prog
 
     # Run the generated R code
     input_cmd = ["echo", prog]
@@ -216,9 +216,11 @@ position_stack = mkfunc("position_stack")
 position_jitter = mkfunc("position_jitter")
 
 def data_sql(db, sql):
-  if not db: 
-    print "ERR: -db option must be set if using -sql"
+  if not db:
+    if sql:
+      print "ERR: -db option must be set if using -sql"
     return ""
+
 
   cmd = """
 library(RPostgreSQL)
