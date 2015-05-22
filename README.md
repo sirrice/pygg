@@ -57,7 +57,7 @@ runpyplot.py -c "ggplot('diamonds', aes('carat', 'price')) + geom_point()" -csv 
 
 ```
 
-For Python usage, see `tests/example.py` 
+For Python usage, see [`tests/example.py`](https://github.com/sirrice/pyplot/blob/master/tests/example.py)
 
 ```python
 from pyplot import *
@@ -65,7 +65,7 @@ from pyplot import *
 # Example using diamonds dataset (comes with ggplot2)
 p = ggplot('diamonds', aes('carat', y='price'))
 g = geom_point() + facet_wrap(None, "color")
-(p+g).save("test1.pdf")
+ggsave("test1.pdf", p+g)
 ```
 
 
