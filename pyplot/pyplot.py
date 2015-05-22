@@ -47,7 +47,7 @@ class GGStatement(object):
     return self.r
 
   def save(self, name, *args, **kwargs):
-    return self.to_stmts().save(name, *args, **kwargs)
+    return ggsave(name, self.to_stmts(), *args, **kwargs)
 
 
 class GGStatements(object):
@@ -80,60 +80,9 @@ class GGStatements(object):
     return self.r
 
   def save(self, name, *args, **kwargs):
-    """
-    @param name output file name.  if None, don't run R command
-    @param kwargs keyword args to pass to ggsave.  The following are special
-           keywords for the python save method
+    return ggsave(name, self, *args, **kwargs)
 
-      prefix: string containing R code to run before the ggplot command
-      quiet:  if Truthy, don't print out R program string
 
-    """
-    kwdefaults = {
-      'width': 10,
-      'height': 8,
-      'scale': 1
-    }
-    keys_to_rm = ["prefix", "quiet"]
-    varname = "p"
-    header = "library(ggplot2)"
-
-    kwargs = dict([(k,v) for k,v in kwargs.items() if v is not None])
-    prefix = kwargs.get('prefix', '')
-    quiet = kwargs.get("quiet", False)
-    for key in keys_to_rm:
-      if key in kwargs: del kwargs[key]
-    kwdefaults.update(kwargs)
-    kwargs = kwdefaults
-
-    prog = "%(header)s\n%(prefix)s\n%(varname)s = %(prog)s" % {
-      'header': header,
-      'prefix': prefix,
-      'varname' : varname,
-      'prog': self.r
-    }
-
-    if name:
-      stmt = GGStatement("ggsave", "'%s'" % name, varname, *args, **kwargs)
-      prog = "%s\n%s" % (prog, stmt.r)
-
-    if not quiet:
-      print prog
-      print
-
-    if not name: return prog
-
-    # Run the generated R code
-    input_cmd = ["echo", prog]
-    input_proc = subprocess.Popen(input_cmd, stdout=subprocess.PIPE)
-    r_cmd = "R --no-save --quiet"
-    FNULL = open(os.devnull, 'w')
-    subprocess.call(r_cmd, 
-                    stdin=input_proc.stdout, 
-                    stdout=FNULL,
-                    stderr=subprocess.STDOUT,
-                    shell=True)
-    return prog
 
 
 
@@ -343,5 +292,61 @@ def facet_grid(x, y, *args, **kwargs):
   return GGStatement("facet_grid", facets, *args, **kwargs)
 
     
+
+def ggsave(name, plot, *args, **kwargs):
+  """
+  @param name output file name.  if None, don't run R command
+  @param kwargs keyword args to pass to ggsave.  The following are special
+          keywords for the python save method
+
+    prefix: string containing R code to run before the ggplot command
+    quiet:  if Truthy, don't print out R program string
+
+  """
+  kwdefaults = {
+    'width': 10,
+    'height': 8,
+    'scale': 1
+  }
+  keys_to_rm = ["prefix", "quiet"]
+  varname = "p"
+  header = "library(ggplot2)"
+
+  kwargs = dict([(k,v) for k,v in kwargs.items() if v is not None])
+  prefix = kwargs.get('prefix', '')
+  quiet = kwargs.get("quiet", False)
+  for key in keys_to_rm:
+    if key in kwargs: del kwargs[key]
+  kwdefaults.update(kwargs)
+  kwargs = kwdefaults
+
+  prog = "%(header)s\n%(prefix)s\n%(varname)s = %(prog)s" % {
+    'header': header,
+    'prefix': prefix,
+    'varname' : varname,
+    'prog': plot.r
+  }
+
+  if name:
+    stmt = GGStatement("ggsave", "'%s'" % name, varname, *args, **kwargs)
+    prog = "%s\n%s" % (prog, stmt.r)
+
+  if not quiet:
+    print prog
+    print
+
+  if not name: return prog
+
+  # Run the generated R code
+  input_cmd = ["echo", prog]
+  input_proc = subprocess.Popen(input_cmd, stdout=subprocess.PIPE)
+  r_cmd = "R --no-save --quiet"
+  FNULL = open(os.devnull, 'w')
+  subprocess.call(r_cmd, 
+                  stdin=input_proc.stdout, 
+                  stdout=FNULL,
+                  stderr=subprocess.STDOUT,
+                  shell=True)
+  return prog
 
 

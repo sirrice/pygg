@@ -39,6 +39,8 @@ def main(c, prefix, csv, db, sql, o, w, h, scale):
     \b
     # prefix argument is a string to execute before running ggplot and ggsave commands
     prefix = \"\"\"diamonds =  ...R code to load data...  \"\"\"
+    ggsave("test.pdf", p, prefix=prefix)
+    # the following is a shorthand
     p.save("test.pdf", prefix=prefix)
 
 
