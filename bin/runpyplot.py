@@ -59,6 +59,12 @@ def main(c, prefix, csv, db, sql, o, w, h, scale):
     prefix = data_py({'x': [0,1,2], 'y': [9,8,7]})
     prefix = data_py([{'x': 0, 'y': 1}, {'x': 2, 'y': 3})
 
+    \b
+    df = ...pandas DataFrame object...
+    prefix = data_dataframe(df)
+    # functionally equivalent 
+    prefix = data_py(df)
+
 
   Example commands
 

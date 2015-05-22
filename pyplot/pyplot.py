@@ -214,6 +214,13 @@ def data_csv(fname, *args, **kwargs):
   "Load csv file using read.csv"
   return "data = %s" % GGStatement("read.csv", fname, *args, **kwargs).r
 
+def data_dataframe(df, *args, **kwargs):
+  "export data frame as csv file, then read it in R"
+  fname = "./_pyplot_data.csv"
+  df.to_csv(fname, sep=',', encoding='utf-8')
+  kwargs["sep"] = ","
+  return data_csv(fname, *args, **kwargs)
+
 def data_py(o, *args, **kwargs):
   """
   converts python object into R Dataframe definition
@@ -227,6 +234,8 @@ def data_py(o, *args, **kwargs):
 
         { 'x': [0,1,2...], 'y': [...], ... }
 
+    pandas DataFrame
+
   @param o python object to convert
   @param args argument list to pass to data.frame
   @param kwargs keyword args to pass to data.frame
@@ -234,6 +243,13 @@ def data_py(o, *args, **kwargs):
         
         data = data.frame(cbind(..yourdata..), *args, **kwargs)
   """
+
+  try:
+    from pandas import DataFrame
+    if isinstance(df, DataFrame):
+      return data_dataframe(o, *args, **kwargs)
+  except:
+    pass
 
   def totext(v): 
     if v is None: 

@@ -3,6 +3,9 @@ pyplot
 
 ggplot2 syntax in python.  Actually wrapper around Wickham's ggplot2 in R
 
+Particularly good if you have preprocessed CSVs or Postgres data to render.  Passable
+support for simple data in python lists, dictionaries, and panda DataFrame objects
+
 pyplot allows you to use ggplot2 syntax nearly verbatim in Python,
 and execute the ggplot program in R.  Since this is just a wrapper
 and passes all arguments to the R backend, it is almost completely
