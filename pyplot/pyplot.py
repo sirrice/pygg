@@ -219,7 +219,7 @@ def data_dataframe(df, *args, **kwargs):
   fname = "./_pyplot_data.csv"
   df.to_csv(fname, sep=',', encoding='utf-8')
   kwargs["sep"] = ","
-  return data_csv(fname, *args, **kwargs)
+  return data_csv("\"%s\"" % fname, *args, **kwargs)
 
 def data_py(o, *args, **kwargs):
   """
@@ -362,6 +362,7 @@ def ggsave(name, plot, *args, **kwargs):
   input_proc = subprocess.Popen(input_cmd, stdout=subprocess.PIPE)
   r_cmd = "R --no-save --quiet"
   FNULL = open(os.devnull, 'w')
+  FNULL = None
   subprocess.call(r_cmd, 
                   stdin=input_proc.stdout, 
                   stdout=FNULL,
