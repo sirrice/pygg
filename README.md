@@ -11,7 +11,7 @@ and execute the ggplot program in R.  Since this is just a wrapper
 and passes all arguments to the R backend, it is almost completely
 API compatible.  
 
-For a nearly exhaustive list of supported ggplot2 functions, see `pyplot/gen_cmd.py`
+For a nearly exhaustive list of supported ggplot2 functions, see [`pyplot/gen_cmd.py`](https://github.com/sirrice/pyplot/blob/master/pyplot/gen_cmds.py)
 
 
 
