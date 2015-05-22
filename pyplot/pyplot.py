@@ -187,7 +187,10 @@ position_stack = mkfunc("position_stack")
 position_jitter = mkfunc("position_jitter")
 
 def data_sql(db, sql):
-  "Load file using RPostgreSQL"
+  """
+  Load file using RPostgreSQL
+  Place to edit if want to add more database backend support
+  """
   if not db:
     if sql:
       print "ERR: -db option must be set if using -sql"
@@ -200,11 +203,12 @@ def data_sql(db, sql):
     con = dbConnect(drv, dbname='%(db_name)s')
     q = "%(query)s"
     data = dbGetQuery(con, q)
-  """ % {
+  """ 
+  
+  return cmd % {
     'db_name' : db,
     'query' : sql
   }
-  return cmd
 
 def data_csv(fname, *args, **kwargs):
   "Load csv file using read.csv"
