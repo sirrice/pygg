@@ -69,7 +69,70 @@ ggsave("test1.pdf", p+g)
 ```
 
 
-        
+Quirks to be aware of
+=====================
+
+The library performs a simple syntactic translation from python 
+ggplot objects to R code.  Because of this, there are some quirks
+regarding datasets and how we deal with strings.
+
+### Datasets
+
+In R, ggplot directly references the data frame object present in the runtime
+(e.g., `ggplot(<datasetname>, aes(...))`.   However, the python
+objects being plotted are not directly available in the R runtime.  
+We get around this with the `prefix` argument to `ggsave`, which prepends
+an arbitrary string to the generated R program.  For example, the following
+will read a CSV file into `data` before plotting `data`:
+
+        p = ggplot(data, aes(...)) + geom_point()
+        ggsave(p, "out.pdf", prefix="data=read.csv('foo.csv')")
+
+In addition, we provide several convenience functions that generate
+the appropriate R code for common python dataset formats: 
+
+* **csv file**: if you have a CSV file already
+
+        prefix = data_csv("file.csv")
+
+* **python object**: if your data is a python object in columnar (`{x: [1,2], y: [3,4]}`)
+  or row (`[{x:1,y:3}, {x:2,y:4}]`) format
+
+        prefix = data_py({x: [1,2], y:[3,4]})
+
+* **pandas dataframe**: if your data is a `pandas` data frame object
+
+        prefix = data_dataframe(df)
+
+* **PostgresQL**: if your data is stored in a postgres database
+
+        prefix = data_sql('DBNAME', 'SELECT * FROM ...')
+
+### String arguments
+
+By default, the library directly prints a python string argument into the 
+R code string.  For example the following python code to set the x axis label
+would generate incorrect R code:
+
+        # python code
+        scales_x_continuous(name="special label")
+
+        # generated R code
+        scales_x_continuous(name=special label)
+
+You'll need to explicitly wrap these types of strings (inteded as R strings)
+in a layer of quotes.  For convenience, we automaticall provide wrapping
+for common functions:
+
+        # "filename.pdf" is wrapped
+        ggsave(p, "filename.pdf")
+
+        # "data.csv" is wrapped
+        data_csv("data.csv")
+
+        # string values passed to data_py are naively wrapped
+
+
 
 Questions 
 ===============

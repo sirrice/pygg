@@ -1,15 +1,22 @@
+"""
+run the following for help
+
+  python bin/runpyplot.py --help
+"""
 import os
 import click
 import re
 import subprocess
+import random
+import csv
 from collections import defaultdict
 
 quote1re = re.compile("\"")
 quote2re = re.compile("'")
 
 class GGStatement(object):
-  def __init__(self, name, *args, **kwargs):
-    self.name = name
+  def __init__(self, _name, *args, **kwargs):
+    self.name = _name
     self.args = args
     self.kwargs = kwargs
 
@@ -118,6 +125,8 @@ def data_sql(db, sql):
 
 def data_csv(fname, *args, **kwargs):
   "Load csv file using read.csv"
+  # wrap file name into R string text
+  fname = '"%s"' % fname
   return "data = %s" % GGStatement("read.csv", fname, *args, **kwargs).r
 
 def data_dataframe(df, *args, **kwargs):
@@ -125,7 +134,7 @@ def data_dataframe(df, *args, **kwargs):
   fname = "./_pyplot_data.csv"
   df.to_csv(fname, sep=',', encoding='utf-8')
   kwargs["sep"] = ","
-  return data_csv("\"%s\"" % fname, *args, **kwargs)
+  return data_csv("%s" % fname, *args, **kwargs)
 
 def data_py(o, *args, **kwargs):
   """
@@ -140,7 +149,9 @@ def data_py(o, *args, **kwargs):
 
         { 'x': [0,1,2...], 'y': [...], ... }
 
-    pandas DataFrame
+
+  if the dataset is larger than 100 records, it is written to 
+  a csv file and loaded using data_csv
 
   @param o python object to convert
   @param args argument list to pass to data.frame
@@ -180,6 +191,19 @@ def data_py(o, *args, **kwargs):
       for key in keys:
         newo[key].append(d.get(key, None))
     o = newo
+
+  # write to CSV file
+  if len(o) > 0 and len(o.values()[0]) > 100:
+    fname = "/tmp/pyplot_%s.csv" % random.randint(0, 2<<32)
+    with file(fname, "w") as f:
+      keys = o.keys()
+      writer = csv.DictWriter(f, fieldnames=keys)
+      writer.writeheader()
+      for rowidx in range(len(o.values()[0])):
+        row = {key: o[key][rowidx] for key in keys}
+        writer.writerow(row)
+    return data_csv(fname, *args, **kwargs)
+
 
   # convert into R code that creates the data.frame
   defs = []
@@ -306,6 +330,7 @@ def mkfunc(fname):
 
 ggplot = mkfunc("ggplot")
 qplot = mkfunc("qplot")
+factor = mkfunc("factor")
 geom_jitter = mkfunc("geom_jitter")
 geom_line = mkfunc("geom_line")
 geom_path = mkfunc("geom_path")
