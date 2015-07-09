@@ -114,11 +114,17 @@ By default, the library directly prints a python string argument into the
 R code string.  For example the following python code to set the x axis label
 would generate incorrect R code:
 
-        # python code
+        # incorrect python code
         scales_x_continuous(name="special label")
 
-        # generated R code
+        # incorrect generated R code
         scales_x_continuous(name=special label)
+
+        # correct python code
+        scales_x_continuous(name="'special label'")
+
+        # correct generated R code
+        scales_x_continuous(name='special label')
 
 You'll need to explicitly wrap these types of strings (inteded as R strings)
 in a layer of quotes.  For convenience, we automaticall provide wrapping
