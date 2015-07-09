@@ -8,11 +8,11 @@ except:
 
 
 import click
-from pyplot import *
+from pygg import *
 
 
 @click.command()
-@click.option("-c", help="pyplot command")
+@click.option("-c", help="pygg command")
 @click.option("-prefix", help="R commands to prefix")
 @click.option("-csv", type=str, help="CSV file to load into var \"data\"")
 @click.option("-db", help="Database name if using -sql")
@@ -25,14 +25,14 @@ def main(c, prefix, csv, db, sql, o, w, h, scale):
   """
   ggplot2 syntax in Python.
 
-  Run pyplot command from command line
+  Run pygg command from command line
 
-    python pyplot -c "ggplot('diamonds', aes('carat', 'price')) + geom_point()"
+    python pygg -c "ggplot('diamonds', aes('carat', 'price')) + geom_point()"
 
   Import into your python program to use ggplot
 
     \b
-    from pyplot import *
+    from pygg import *
     p = ggplot('diamonds', aes('carat', y='price')) + geom_point()
     p = p + facet_wrap(None, "color")
 
@@ -69,11 +69,11 @@ def main(c, prefix, csv, db, sql, o, w, h, scale):
   Example commands
 
     \b
-    python pyplot -db database -sql "SELECT x,y FROM T" -c "ggplot('data', aes('x', 'y')) + geom_point()"
-    python pyplot -csv mydata.csv -c "ggplot('data', aes(x='attr1', y='attr2')) + geom_point()"
+    python pygg -db database -sql "SELECT x,y FROM T" -c "ggplot('data', aes('x', 'y')) + geom_point()"
+    python pygg -csv mydata.csv -c "ggplot('data', aes(x='attr1', y='attr2')) + geom_point()"
 
 
-  Caveats: Does not copy and import data between python and R, so pyplot depends on setting the prefix to load the appropriate data into an R variable so that ggplot can load it:
+  Caveats: Does not copy and import data between python and R, so pygg depends on setting the prefix to load the appropriate data into an R variable so that ggplot can load it:
   """
 
   if not c: 

@@ -1,7 +1,7 @@
 """
 run the following for help
 
-  python bin/runpyplot.py --help
+  python bin/runpygg.py --help
 """
 import os
 import click
@@ -131,7 +131,7 @@ def data_csv(fname, *args, **kwargs):
 
 def data_dataframe(df, *args, **kwargs):
   "export data frame as csv file, then read it in R"
-  fname = "./_pyplot_data.csv"
+  fname = "/tmp/_pygg_data.csv"
   df.to_csv(fname, sep=',', encoding='utf-8')
   kwargs["sep"] = ","
   return data_csv("%s" % fname, *args, **kwargs)
@@ -194,7 +194,7 @@ def data_py(o, *args, **kwargs):
 
   # write to CSV file
   if len(o) > 0 and len(o.values()[0]) > 100:
-    fname = "/tmp/pyplot_%s.csv" % random.randint(0, 2<<32)
+    fname = "/tmp/pygg_%s.csv" % random.randint(0, 2<<32)
     with file(fname, "w") as f:
       keys = o.keys()
       writer = csv.DictWriter(f, fieldnames=keys)

@@ -1,4 +1,4 @@
-pyplot
+pygg
 =================
 
 ggplot2 syntax in python.  Actually wrapper around Wickham's ggplot2 in R
@@ -6,12 +6,12 @@ ggplot2 syntax in python.  Actually wrapper around Wickham's ggplot2 in R
 Particularly good if you have preprocessed CSVs or Postgres data to render.  Passable
 support for simple data in python lists, dictionaries, and panda DataFrame objects
 
-pyplot allows you to use ggplot2 syntax nearly verbatim in Python,
+pygg allows you to use ggplot2 syntax nearly verbatim in Python,
 and execute the ggplot program in R.  Since this is just a wrapper
 and passes all arguments to the R backend, it is almost completely
 API compatible.  
 
-For a nearly exhaustive list of supported ggplot2 functions, see [`pyplot/gen_cmd.py`](https://github.com/sirrice/pyplot/blob/master/pyplot/gen_cmds.py)
+For a nearly exhaustive list of supported ggplot2 functions, see [`pygg/gen_cmd.py`](https://github.com/sirrice/pygg/blob/master/pygg/gen_cmds.py)
 
 
 
@@ -45,22 +45,22 @@ install.packages("RPostgreSQL")
 Install
 
 ```bash
-pip install pyplot
+pip install pygg
 ```
 
 Command line usage 
 
 ```bash
-runpyplot.py --help
-runpyplot.py -c "ggplot('diamonds', aes('carat', 'price')) + geom_point()" -o test.pdf
-runpyplot.py -c "ggplot('diamonds', aes('carat', 'price')) + geom_point()" -csv foo.csv
+runpygg.py --help
+runpygg.py -c "ggplot('diamonds', aes('carat', 'price')) + geom_point()" -o test.pdf
+runpygg.py -c "ggplot('diamonds', aes('carat', 'price')) + geom_point()" -csv foo.csv
 
 ```
 
-For Python usage, see [`tests/example.py`](https://github.com/sirrice/pyplot/blob/master/tests/example.py)
+For Python usage, see [`tests/example.py`](https://github.com/sirrice/pygg/blob/master/tests/example.py)
 
 ```python
-from pyplot import *
+from pygg import *
 
 # Example using diamonds dataset (comes with ggplot2)
 p = ggplot('diamonds', aes('carat', y='price'))
@@ -148,7 +148,7 @@ Alternatives
 * **[yhat's ggplot](http://ggplot.yhathq.com/)**:  yhat's
 port of ggplot is really awesome.  It runs everything natively in
 python, works with numpy data structures, and renders using matplotlib.
-`pyplot` exists partly due to personal preference, and partly because
+`pygg` exists partly due to personal preference, and partly because
 the R version of ggplot2 is more mature, and its layout algorithms are
 really really good.
 

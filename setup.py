@@ -5,20 +5,20 @@ except ImportError:
     import ez_setup
     ez_setup.use_setuptools()
 from setuptools import setup, find_packages
-import pyplot
+import pygg
 
-setup(name="pyplot",
-      version=pyplot.__version__,
+setup(name="pygg",
+      version=pygg.__version__,
       description="ggplot2 syntax for python.  Runs R version of ggplot2 under the covers",
       license="MIT",
       author="Eugene Wu",
       author_email="ewu@cs.columbia.edu",
-      url="http://github.com/sirrice/pyplot",
+      url="http://github.com/sirrice/pygg",
       packages = find_packages(),
       include_package_data = True,      
-      package_dir = {'pyplot' : 'pyplot'},
+      package_dir = {'pygg' : 'pygg'},
       scripts = [
-        'bin/runpyplot.py'
+        'bin/runpygg.py'
       ],
       install_requires = [
         'click'
