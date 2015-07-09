@@ -1,4 +1,4 @@
-from pyplot import *
+from pygg import *
 
 # Example using diamonds dataset (comes with ggplot2)
 p = ggplot('diamonds', aes('carat', y='price', color='color'))
