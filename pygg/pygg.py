@@ -14,82 +14,82 @@ from collections import defaultdict
 quote1re = re.compile("\"")
 quote2re = re.compile("'")
 
+
 class GGStatement(object):
-  def __init__(self, _name, *args, **kwargs):
-    self.name = _name
-    self.args = args
-    self.kwargs = kwargs
 
+    def __init__(self, _name, *args, **kwargs):
+        self.name = _name
+        self.args = args
+        self.kwargs = kwargs
 
-  def to_stmts(self):
-    return GGStatements([self])
+    def to_stmts(self):
+        return GGStatements([self])
 
-  def __add__(self, o):
-    if not o: return self.to_stmts()
-    return self.to_stmts() + o.to_stmts()
+    def __add__(self, o):
+        if not o:
+            return self.to_stmts()
+        return self.to_stmts() + o.to_stmts()
 
+    @staticmethod
+    def to_r(o):
+        try:
+            return o.r
+        except:
+            pass
 
-  @staticmethod
-  def to_r(o):
-    try:
-      return o.r
-    except:
-      pass
+        return str(o)
 
-    return str(o)
+    @property
+    def r(self):
+        args = map(GGStatement.to_r, self.args)
+        kw2s = lambda (k, v): "%s=%s" % (k, GGStatement.to_r(v))
+        kwargs = map(kw2s, self.kwargs.iteritems())
 
-  @property
-  def r(self):
-    args = map(GGStatement.to_r, self.args)
-    kw2s = lambda (k,v): "%s=%s" % (k, GGStatement.to_r(v))
-    kwargs = map(kw2s, self.kwargs.iteritems())
+        all_args = args + kwargs
+        all_args = filter(bool, all_args)
+        all_args = ", ".join(all_args)
+        cmd = "%s(%s)" % (self.name, all_args)
+        return cmd
 
-    all_args = args + kwargs
-    all_args = filter(bool, all_args)
-    all_args = ", ".join(all_args)
-    cmd = "%s(%s)" % (self.name, all_args)
-    return cmd
+    def __str__(self):
+        return self.r
 
-  def __str__(self):
-    return self.r
-
-  def save(self, name, *args, **kwargs):
-    return ggsave(name, self.to_stmts(), *args, **kwargs)
+    def save(self, name, *args, **kwargs):
+        return ggsave(name, self.to_stmts(), *args, **kwargs)
 
 
 class GGStatements(object):
-  def __init__(self, stmts=None):
-    self.stmts = stmts
-    if not self.stmts:
-      self.stmts = []
 
+    def __init__(self, stmts=None):
+        self.stmts = stmts
+        if not self.stmts:
+            self.stmts = []
 
-  def to_stmts(self):
-    return self
+    def to_stmts(self):
+        return self
 
-  def __add__(self, o):
-    if not o: return self
-    stmts = list(self.stmts)
-    try:
-      stmts.extend(o.to_stmts().stmts)
-    except:
-      if isinstance(o, list):
-        stmts.extend(o)
-      else:
-        stmts.append(o)
-    return GGStatements(stmts)
+    def __add__(self, o):
+        if not o:
+            return self
+        stmts = list(self.stmts)
+        try:
+            stmts.extend(o.to_stmts().stmts)
+        except:
+            if isinstance(o, list):
+                stmts.extend(o)
+            else:
+                stmts.append(o)
+        return GGStatements(stmts)
 
-  @property
-  def r(self):
-    return " + ".join(map(GGStatement.to_r, self.stmts))
+    @property
+    def r(self):
+        return " + ".join(map(GGStatement.to_r, self.stmts))
 
-  def __str__(self):
-    return self.r
+    def __str__(self):
+        return self.r
 
-  def save(self, name, *args, **kwargs):
-    return ggsave(name, self, *args, **kwargs)
-
-
+    def save(self, name, *args, **kwargs):
+        return ggsave(name, self, *args, **kwargs)
 
 
 ###################################################
@@ -99,121 +99,128 @@ class GGStatements(object):
 ###################################################
 
 
+def is_pandas_df(o):
+    """Is object o a pandas dataframe?"""
+    try:
+        from pandas import DataFrame
+    except ImportError:
+        # couldn't import pandas, so it cannot possibly be a pandas DF
+        return False
+    return isinstance(o, DataFrame)
+
+
 def data_sql(db, sql):
-  """
-  Load file using RPostgreSQL
-  Place to edit if want to add more database backend support
-  """
-  if not db:
-    if sql:
-      print "ERR: -db option must be set if using -sql"
-    return ""
+    """Load file using RPostgreSQL
 
+    Place to edit if want to add more database backend support
 
-  cmd = """
+    """
+    if not db:
+        if sql:
+            print "ERR: -db option must be set if using -sql"
+        return ""
+
+    cmd = """
     library(RPostgreSQL)
     drv = dbDriver('PostgreSQL')
     con = dbConnect(drv, dbname='%(db_name)s')
     q = "%(query)s"
     data = dbGetQuery(con, q)
-  """ 
-  
-  return cmd % {
-    'db_name' : db,
-    'query' : sql
-  }
+  """
+
+    return cmd % {
+        'db_name': db,
+        'query': sql
+    }
+
 
 def data_csv(fname, *args, **kwargs):
-  "Load csv file using read.csv"
-  # wrap file name into R string text
-  fname = '"%s"' % fname
-  return "data = %s" % GGStatement("read.csv", fname, *args, **kwargs).r
+    "Load csv file using read.csv"
+    # wrap file name into R string text
+    fname = '"%s"' % fname
+    return "data = %s" % GGStatement("read.csv", fname, *args, **kwargs).r
+
 
 def data_dataframe(df, *args, **kwargs):
-  "export data frame as csv file, then read it in R"
-  fname = "/tmp/_pygg_data.csv"
-  df.to_csv(fname, sep=',', encoding='utf-8')
-  kwargs["sep"] = ","
-  return data_csv("%s" % fname, *args, **kwargs)
+    "export data frame as csv file, then read it in R"
+    fname = "/tmp/_pygg_data.csv"
+    df.to_csv(fname, sep=',', encoding='utf-8')
+    kwargs["sep"] = ","
+    return data_csv("%s" % fname, *args, **kwargs)
+
 
 def data_py(o, *args, **kwargs):
-  """
-  converts python object into R Dataframe definition
-  converts following data structures:
+    """converts python object into R Dataframe definition
 
-    row oriented list of dictionaries:
+    converts following data structures:
 
-        [ { 'x': 0, 'y': 1, ...}, ... ]
+      row oriented list of dictionaries:
 
-    col oriented dictionary of lists
+          [ { 'x': 0, 'y': 1, ...}, ... ]
 
-        { 'x': [0,1,2...], 'y': [...], ... }
+      col oriented dictionary of lists
 
-
-  if the dataset is larger than 100 records, it is written to 
-  a csv file and loaded using data_csv
-
-  @param o python object to convert
-  @param args argument list to pass to data.frame
-  @param kwargs keyword args to pass to data.frame
-  @return expression to define data.frame object and set it to variable "data"
-        
-        data = data.frame(cbind(..yourdata..), *args, **kwargs)
-  """
-
-  try:
-    from pandas import DataFrame
-    if isinstance(df, DataFrame):
-      return data_dataframe(o, *args, **kwargs)
-  except:
-    pass
-
-  def totext(v): 
-    " translate a python base value into R text "
-    if v is None: 
-      return "NA"
-    if isinstance(v, basestring): 
-      v = quote1re.sub("\\\"", v)
-      v = quote2re.sub("\\'", v)
-      return "'%s'" % v
-    return str(v)
-
-  def l2rtext(l):
-    "translate list of python primitives into list definition in R"
-    return "c(%s)" % ", ".join(map(totext, l))
-
-  # convert row to col
-  if isinstance(o, list):
-    newo = defaultdict(list)
-    keys = set()
-    map(keys.update, [d.keys() for d in o])
-    for d in o:
-      for key in keys:
-        newo[key].append(d.get(key, None))
-    o = newo
-
-  # write to CSV file
-  if len(o) > 0 and len(o.values()[0]) > 100:
-    fname = "/tmp/pygg_%s.csv" % random.randint(0, 2<<32)
-    with file(fname, "w") as f:
-      keys = o.keys()
-      writer = csv.DictWriter(f, fieldnames=keys)
-      writer.writeheader()
-      for rowidx in range(len(o.values()[0])):
-        row = {key: o[key][rowidx] for key in keys}
-        writer.writerow(row)
-    return data_csv(fname, *args, **kwargs)
+          { 'x': [0,1,2...], 'y': [...], ... }
 
 
-  # convert into R code that creates the data.frame
-  defs = []
-  for col, vals in o.iteritems():
-    stmt = "%s = %s" % (col, l2rtext(vals))
-    defs.append(stmt)
-  data_arg = "cbind(%s)" % ", ".join(defs)
+    if the dataset is larger than 100 records, it is written to
+    a csv file and loaded using data_csv
 
-  return "data = %s" % GGStatement("data.frame", data_arg, *args, **kwargs).r
+    @param o python object to convert
+    @param args argument list to pass to data.frame
+    @param kwargs keyword args to pass to data.frame
+    @return expression to define data.frame object and set it to variable "data"
 
+          data = data.frame(cbind(..yourdata..), *args, **kwargs)
+
+    """
+    def totext(v):
+        "Translate a python base value into R text "
+        if v is None:
+            return "NA"
+        if isinstance(v, basestring):
+            v = quote1re.sub("\\\"", v)
+            v = quote2re.sub("\\'", v)
+            return "'%s'" % v
+        return str(v)
+
+    def l2rtext(l):
+        "Translate list of python primitives into list definition in R"
+        return "c(%s)" % ", ".join(map(totext, l))
+
+    if is_pandas_df(o):
+        return data_dataframe(o, *args, **kwargs)
+
+    # convert row to col
+    if isinstance(o, list):
+        newo = defaultdict(list)
+        keys = set()
+        map(keys.update, [d.keys() for d in o])
+        for d in o:
+            for key in keys:
+                newo[key].append(d.get(key, None))
+        o = newo
+
+    # write to CSV file
+    if len(o) > 0 and len(o.values()[0]) > 100:
+        fname = "/tmp/pygg_%s.csv" % random.randint(0, 2 << 32)
+        with file(fname, "w") as f:
+            keys = o.keys()
+            writer = csv.DictWriter(f, fieldnames=keys)
+            writer.writeheader()
+            for rowidx in range(len(o.values()[0])):
+                row = {key: o[key][rowidx] for key in keys}
+                writer.writerow(row)
+        return data_csv(fname, *args, **kwargs)
+
+    # convert into R code that creates the data.frame
+    defs = []
+    for col, vals in o.iteritems():
+        stmt = "%s = %s" % (col, l2rtext(vals))
+        defs.append(stmt)
+    data_arg = "cbind(%s)" % ", ".join(defs)
+
+    return "data = %s" % GGStatement("data.frame", data_arg, *args, **kwargs).r
 
 
 ###################################################
@@ -225,28 +232,32 @@ def data_py(o, *args, **kwargs):
 
 
 def facet_wrap(x, y, *args, **kwargs):
-  if not x and not y: 
-    print "WARN: facet_wrap got x=None, y=None"
-    return None
-  if not x: x = ""
-  if not y: y = "."
+    if not x and not y:
+        print "WARN: facet_wrap got x=None, y=None"
+        return None
+    if not x:
+        x = ""
+    if not y:
+        y = "."
 
-  facets = "%s~%s" % (x,y)
-  return GGStatement("facet_wrap", facets, *args, **kwargs)
+    facets = "%s~%s" % (x, y)
+    return GGStatement("facet_wrap", facets, *args, **kwargs)
 
 
 def facet_grid(x, y, *args, **kwargs):
-  facets = filter(bool, [x, y])
-  if not facets:
-    print "WARN: facet_grid got x=None, y=None"
-    return None
-  facets = "%s~" % "+".join(facets)
+    facets = filter(bool, [x, y])
+    if not facets:
+        print "WARN: facet_grid got x=None, y=None"
+        return None
+    facets = "%s~" % "+".join(facets)
 
-  if not x: x = "."
-  if not y: y = "."
+    if not x:
+        x = "."
+    if not y:
+        y = "."
 
-  facets = "%s~%s" % (x,y)
-  return GGStatement("facet_grid", facets, *args, **kwargs)
+    facets = "%s~%s" % (x, y)
+    return GGStatement("facet_grid", facets, *args, **kwargs)
 
 
 ###################################################
@@ -256,77 +267,73 @@ def facet_grid(x, y, *args, **kwargs):
 ###################################################
 
 
-
 def ggsave(name, plot, *args, **kwargs):
-  """
-  @param name output file name.  if None, don't run R command
-  @param kwargs keyword args to pass to ggsave.  The following are special
-          keywords for the python save method
+    """Save a GGStatements object to destination name
 
-    prefix: string containing R code to run before the ggplot command
-    quiet:  if Truthy, don't print out R program string
+    @param name output file name.  if None, don't run R command
+    @param kwargs keyword args to pass to ggsave.  The following are special
+            keywords for the python save method
 
-  """
-  kwdefaults = {
-    'width': 10,
-    'height': 8,
-    'scale': 1
-  }
-  keys_to_rm = ["prefix", "quiet"]
-  varname = "p"
-  header = "library(ggplot2)"
+      prefix: string containing R code to run before the ggplot command
+      quiet:  if Truthy, don't print out R program string
 
-  kwargs = dict([(k,v) for k,v in kwargs.items() if v is not None])
-  prefix = kwargs.get('prefix', '')
-  quiet = kwargs.get("quiet", False)
-  for key in keys_to_rm:
-    if key in kwargs: del kwargs[key]
-  kwdefaults.update(kwargs)
-  kwargs = kwdefaults
+    """
+    kwdefaults = {
+        'width': 10,
+        'height': 8,
+        'scale': 1
+    }
+    keys_to_rm = ["prefix", "quiet"]
+    varname = "p"
+    header = "library(ggplot2)"
 
-  prog = "%(header)s\n%(prefix)s\n%(varname)s = %(prog)s" % {
-    'header': header,
-    'prefix': prefix,
-    'varname' : varname,
-    'prog': plot.r
-  }
+    kwargs = dict([(k, v) for k, v in kwargs.items() if v is not None])
+    prefix = kwargs.get('prefix', '')
+    quiet = kwargs.get("quiet", False)
+    for key in keys_to_rm:
+        if key in kwargs:
+            del kwargs[key]
+    kwdefaults.update(kwargs)
+    kwargs = kwdefaults
 
-  if name:
-    stmt = GGStatement("ggsave", "'%s'" % name, varname, *args, **kwargs)
-    prog = "%s\n%s" % (prog, stmt.r)
+    prog = "%(header)s\n%(prefix)s\n%(varname)s = %(prog)s" % {
+        'header': header,
+        'prefix': prefix,
+        'varname': varname,
+        'prog': plot.r
+    }
 
-  if not quiet:
-    print prog
-    print
+    if name:
+        stmt = GGStatement("ggsave", "'%s'" % name, varname, *args, **kwargs)
+        prog = "%s\n%s" % (prog, stmt.r)
 
-  if not name: return prog
+    if not quiet:
+        print prog
+        print
 
-  # Run the generated R code
-  FNULL = None
-  if quiet:
-    FNULL = open(os.devnull, 'w')
-  input_cmd = ["echo", prog]
-  input_proc = subprocess.Popen(input_cmd, stdout=subprocess.PIPE)
-  r_cmd = "R --no-save --quiet"
-  subprocess.call(r_cmd, 
-                  stdin=input_proc.stdout, 
-                  stdout=FNULL,
-                  stderr=subprocess.STDOUT,
-                  shell=True)
-  return prog
+    if not name:
+        return prog
 
-
-
-
-
-
+    # Run the generated R code
+    FNULL = None
+    if quiet:
+        FNULL = open(os.devnull, 'w')
+    input_cmd = ["echo", prog]
+    input_proc = subprocess.Popen(input_cmd, stdout=subprocess.PIPE)
+    r_cmd = "R --no-save --quiet"
+    subprocess.call(r_cmd,
+                    stdin=input_proc.stdout,
+                    stdout=FNULL,
+                    stderr=subprocess.STDOUT,
+                    shell=True)
+    return prog
 
 
 def mkfunc(fname):
-  def f(*args, **kwargs):
-    return GGStatement(fname, *args, **kwargs)
-  f.__name__ = fname
-  return f
+    def f(*args, **kwargs):
+        return GGStatement(fname, *args, **kwargs)
+    f.__name__ = fname
+    return f
 
 ggplot = mkfunc("ggplot")
 qplot = mkfunc("qplot")
@@ -492,3 +499,5 @@ aes = mkfunc("aes")
 aes_all = mkfunc("aes_all")
 aes_auto = mkfunc("aes_auto")
 aes_string = mkfunc("aes_string")
+geom_smooth = mkfunc("geom_smooth")
+ggtitle = mkfunc("ggtitle")
