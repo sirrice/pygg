@@ -5,6 +5,9 @@ import tempfile
 import os.path
 
 import pygg
+import pandas.util.testing as pdt
+
+# TODO -- test converting data.frame to R with proper escaping of types
 
 class TestUnits(unittest.TestCase):
     """Basic unit testing for pygg"""
@@ -23,6 +26,43 @@ class TestUnits(unittest.TestCase):
 
     def check_me(self, stmt, expectation):
         self.assertEquals(stmt.r.replace(" ", ""), expectation)
+
+    def testDataPyWithDF(self):
+        df = pandas.DataFrame({'a': [1, 2], 'b': [3, 4]})
+        dffile, expr = pygg.data_py(df)
+        iodf = pandas.read_csv(dffile)
+        pdt.assert_frame_equal(df, iodf)
+
+    def testDataPyLoadStmtPlain(self):
+        df = pandas.DataFrame({'a': [1, 2], 'b': [3, 4]})
+        dffile, expr = pygg.data_py(df)
+        self.assertEquals(expr,
+                          'data = read.csv("{}",sep=",")'.format(dffile))
+
+    def testDataPyLoadStmtArgs(self):
+        df = pandas.DataFrame({'a': [1, 2], 'b': [3, 4]})
+        dffile, expr = pygg.data_py(df, 1, kwd=2)
+        expected = 'data = read.csv("{}",1,kwd=2,sep=",")'.format(dffile)
+        self.assertEquals(expr, expected)
+
+    def testDataPyWithDict(self):
+        src = {'a': [1, 2], 'b': [3, 4]}
+        dffile, expr = pygg.data_py(src)
+        iodf = pandas.read_csv(dffile)
+        pdt.assert_frame_equal(pandas.DataFrame(src), iodf)
+
+    def testDataPyWithListOfDict(self):
+        src = [{'a': 1, 'b': 3}, {'a': 2, 'b': 4}]
+        dffile, expr = pygg.data_py(src)
+        iodf = pandas.read_csv(dffile)
+        pdt.assert_frame_equal(pandas.DataFrame({'a': [1, 2], 'b': [3, 4]}),
+                               pandas.read_csv(dffile))
+
+    def testDataPyWithString(self):
+        src = "my.csv"
+        dffile, expr = pygg.data_py(src)
+        self.assertEquals(dffile, src)
+        self.assertEquals(expr, 'data = read.csv("{}",sep=",")'.format(src))
 
     def testGGStatementToR(self):
         """Test that GGStatement converts to R properly"""
@@ -67,23 +107,24 @@ class TestIntegration(unittest.TestCase):
         p += pygg.scale_x_log10()
         p += pygg.theme_bw()
 
-        self.check_ggsave(p, ext=".pdf")
-        self.check_ggsave(p, ext=".png")
-        self.check_ggsave(p, ext=".jpg")
+        self.check_ggsave(p, None, ext=".pdf")
+        self.check_ggsave(p, None, ext=".png")
+        self.check_ggsave(p, None, ext=".jpg")
 
     def testPandasDF(self):
         data = pandas.read_csv(StringIO.StringIO(IRIS_DATA_CSV))
         self.assertIsInstance(data, pandas.DataFrame)
-        p = pygg.ggplot(pygg.data_py(data),
+        p = pygg.ggplot('data',
                         pygg.aes(x='SepalLength', y='PetalLength', color='Name'))
         p += pygg.geom_point()
         p += pygg.geom_smooth()
         p += pygg.ggtitle('"Test title"')
-        self.check_ggsave(p)
+        self.check_ggsave(p, data)
 
-    def check_ggsave(self, plotobj, ext='.pdf'):
-        tmpfile = tempfile.NamedTemporaryFile(suffix=ext).name
-        pygg.ggsave(tmpfile, plotobj, quiet=True)
+    def check_ggsave(self, plotobj, data, ext='.pdf'):
+        tmpfile = 'foo' + ext   # TODO -- fixme
+        #tmpfile = tempfile.NamedTemporaryFile(suffix=ext).name
+        pygg.ggsave(tmpfile, plotobj, data=data, quiet=True)
         self.assertTrue(os.path.exists(tmpfile))
         self.assertTrue(os.path.getsize(tmpfile) > 0)
 

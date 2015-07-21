@@ -4,12 +4,12 @@ run the following for help
   python bin/runpygg.py --help
 """
 import os
-import click
 import re
 import subprocess
-import random
 import csv
-from collections import defaultdict
+import tempfile
+
+import pandas
 
 quote1re = re.compile("\"")
 quote2re = re.compile("'")
@@ -105,12 +105,7 @@ class GGStatements(object):
 
 def is_pandas_df(o):
     """Is object o a pandas dataframe?"""
-    try:
-        from pandas import DataFrame
-    except ImportError:
-        # couldn't import pandas, so it cannot possibly be a pandas DF
-        return False
-    return isinstance(o, DataFrame)
+    return isinstance(o, pandas.DataFrame)
 
 
 def data_sql(db, sql):
@@ -138,21 +133,6 @@ def data_sql(db, sql):
     }
 
 
-def data_csv(fname, *args, **kwargs):
-    "Load csv file using read.csv"
-    # wrap file name into R string text
-    fname = '"%s"' % fname
-    return "data = %s" % GGStatement("read.csv", fname, *args, **kwargs).r
-
-
-def data_dataframe(df, *args, **kwargs):
-    "export data frame as csv file, then read it in R"
-    fname = "/tmp/_pygg_data.csv"
-    df.to_csv(fname, sep=',', encoding='utf-8')
-    kwargs["sep"] = ","
-    return data_csv("%s" % fname, *args, **kwargs)
-
-
 def data_py(o, *args, **kwargs):
     """converts python object into R Dataframe definition
 
@@ -166,65 +146,26 @@ def data_py(o, *args, **kwargs):
 
           { 'x': [0,1,2...], 'y': [...], ... }
 
-
-    if the dataset is larger than 100 records, it is written to
-    a csv file and loaded using data_csv
-
     @param o python object to convert
-    @param args argument list to pass to data.frame
-    @param kwargs keyword args to pass to data.frame
-    @return expression to define data.frame object and set it to variable "data"
+    @param args argument list to pass to read.csv
+    @param kwargs keyword args to pass to read.csv
+    @return a tuple of the file containing the data and an
+        expression to define data.frame object and set it to variable "data"
 
-          data = data.frame(cbind(..yourdata..), *args, **kwargs)
+    data = read.csv(tmpfile, *args, **kwargs)
 
     """
-    def totext(v):
-        "Translate a python base value into R text "
-        if v is None:
-            return "NA"
-        if isinstance(v, basestring):
-            v = quote1re.sub("\\\"", v)
-            v = quote2re.sub("\\'", v)
-            return "'%s'" % v
-        return str(v)
-
-    def l2rtext(l):
-        "Translate list of python primitives into list definition in R"
-        return "c(%s)" % ", ".join(map(totext, l))
-
-    if is_pandas_df(o):
-        return data_dataframe(o, *args, **kwargs)
-
-    # convert row to col
-    if isinstance(o, list):
-        newo = defaultdict(list)
-        keys = set()
-        map(keys.update, [d.keys() for d in o])
-        for d in o:
-            for key in keys:
-                newo[key].append(d.get(key, None))
-        o = newo
-
-    # write to CSV file
-    if len(o) > 0 and len(o.values()[0]) > 100:
-        fname = "/tmp/pygg_%s.csv" % random.randint(0, 2 << 32)
-        with file(fname, "w") as f:
-            keys = o.keys()
-            writer = csv.DictWriter(f, fieldnames=keys)
-            writer.writeheader()
-            for rowidx in range(len(o.values()[0])):
-                row = {key: o[key][rowidx] for key in keys}
-                writer.writerow(row)
-        return data_csv(fname, *args, **kwargs)
-
-    # convert into R code that creates the data.frame
-    defs = []
-    for col, vals in o.iteritems():
-        stmt = "%s = %s" % (col, l2rtext(vals))
-        defs.append(stmt)
-    data_arg = "cbind(%s)" % ", ".join(defs)
-
-    return "data = %s" % GGStatement("data.frame", data_arg, *args, **kwargs).r
+    if isinstance(o, basestring):
+        fname = o
+    else:
+        if not is_pandas_df(o):
+            # convert incoming data layout to pandas' DataFrame
+            o = pandas.DataFrame(o)
+        fname = tempfile.NamedTemporaryFile().name
+        o.to_csv(fname, sep=',', encoding='utf-8', index=False)
+    kwargs["sep"] = '","'
+    read_csv_stmt = GGStatement("read.csv", '"%s"' % fname, *args, **kwargs).r
+    return fname, "data = {}".format(read_csv_stmt)
 
 
 ###################################################
@@ -234,7 +175,7 @@ def data_py(o, *args, **kwargs):
 #
 ###################################################
 
-
+# TODO -- is this really necessary?  Why can't we pass in a formula as a string?
 def facet_wrap(x, y, *args, **kwargs):
     if not x and not y:
         print "WARN: facet_wrap got x=None, y=None"
@@ -271,37 +212,39 @@ def facet_grid(x, y, *args, **kwargs):
 ###################################################
 
 
-def ggsave(name, plot, *args, **kwargs):
+def ggsave(name, plot, data, *args, **kwargs):
     """Save a GGStatements object to destination name
 
     @param name output file name.  if None, don't run R command
     @param kwargs keyword args to pass to ggsave.  The following are special
             keywords for the python save method
 
+      data: a python data object (list, dict, DataFrame) used to populate
+        the `data` variable in R
       prefix: string containing R code to run before the ggplot command
       quiet:  if Truthy, don't print out R program string
 
     """
+    # constants
     kwdefaults = {
         'width': 10,
         'height': 8,
         'scale': 1
     }
     keys_to_rm = ["prefix", "quiet"]
-    varname = "p"
-    header = "library(ggplot2)"
+    varname = 'p'
 
-    kwargs = dict([(k, v) for k, v in kwargs.items() if v is not None])
+    # process arguments
     prefix = kwargs.get('prefix', '')
     quiet = kwargs.get("quiet", False)
-    for key in keys_to_rm:
-        if key in kwargs:
-            del kwargs[key]
+    kwargs = {k: v for k, v in kwargs.iteritems()
+              if v is not None and key not in keys_to_rm}
     kwdefaults.update(kwargs)
     kwargs = kwdefaults
 
-    prog = "%(header)s\n%(prefix)s\n%(varname)s = %(prog)s" % {
-        'header': header,
+    prog = "%(header)s\n%(prefix)s\n%(data)s\n%(varname)s = %(prog)s" % {
+        'header': "library(ggplot2)",
+        'data': '' if data is None else data_py(data)[1],
         'prefix': prefix,
         'varname': varname,
         'prog': plot.r
@@ -315,24 +258,23 @@ def ggsave(name, plot, *args, **kwargs):
         print prog
         print
 
-    if not name:
-        return prog
-
-    # Run the generated R code
-    FNULL = None
-    if quiet:
-        FNULL = open(os.devnull, 'w')
-    input_cmd = ["echo", prog]
-    input_proc = subprocess.Popen(input_cmd, stdout=subprocess.PIPE)
-    r_cmd = "R --no-save --quiet"
-    subprocess.call(r_cmd,
-                    stdin=input_proc.stdout,
-                    stdout=FNULL,
-                    stderr=subprocess.STDOUT,
-                    shell=True)
+    if name:
+        execute_r(prog, quiet)
     return prog
 
 
+def execute_r(prog, quiet):
+    """Run the R code prog an R subprocess"""
+    with open(os.devnull, 'w') if quiet else None as FNULL:
+        input_proc = subprocess.Popen(["echo", prog], stdout=subprocess.PIPE)
+        subprocess.call("R --no-save --quiet",
+                        stdin=input_proc.stdout,
+                        stdout=FNULL,
+                        stderr=subprocess.STDOUT,
+                        shell=True)
+
+
+# TODO -- remove gen_cmds and put the building code right here
 def mkfunc(fname):
     def f(*args, **kwargs):
         return GGStatement(fname, *args, **kwargs)

@@ -23,7 +23,7 @@ Setup and Usage
 
 Setup
 
-* install R 
+* install R
 
 ```bash
 # on osx
@@ -36,10 +36,10 @@ sudo apt-get install R
 * install R packages (run the following in the R shell)
 
 ```r
-install.packages("ggplot2") 
-install.packages("RPostgreSQL")
+install.packages("ggplot2")
+install.packages("RPostgreSQL") # optional
 ```
-        
+
 
 
 Install
@@ -48,7 +48,7 @@ Install
 pip install pygg
 ```
 
-Command line usage 
+Command line usage
 
 ```bash
 runpygg.py --help
@@ -72,7 +72,7 @@ ggsave("test1.pdf", p+g)
 Quirks to be aware of
 =====================
 
-The library performs a simple syntactic translation from python 
+The library performs a simple syntactic translation from python
 ggplot objects to R code.  Because of this, there are some quirks
 regarding datasets and how we deal with strings.
 
@@ -81,36 +81,60 @@ regarding datasets and how we deal with strings.
 In R, ggplot directly references the data frame object present in the runtime
 (e.g., `ggplot(<datasetname>, aes(...))`.   However, the python
 objects being plotted are not directly available in the R runtime.  
-We get around this with the `prefix` argument to `ggsave`, which prepends
-an arbitrary string to the generated R program.  For example, the following
-will read a CSV file into `data` before plotting `data`:
+We get around by providing a data object `data` argument to `ggsave`, which
+converts the data object to a suitable CSV file, writes it to a temp file,
+and loads it into the `data` variable in R for use with the ggplot2 functions
 
+For example:
+
+        df = pandas.DataFrame(...)
         p = ggplot(data, aes(...)) + geom_point()
-        ggsave(p, "out.pdf", prefix="data=read.csv('foo.csv')")
+        ggsave(p, "out.pdf", data=df)
 
 In addition, we provide several convenience functions that generate
-the appropriate R code for common python dataset formats: 
+the appropriate R code for common python dataset formats:
 
-* **csv file**: if you have a CSV file already
+* **csv file**: if you have a CSV file already, provide the filename to data
 
-        prefix = data_csv("file.csv")
+```
+        p = ggplot(data, aes(...)) + geom_point()
+        ggsave(p, "out.pdf", data="file.csv")
+```
 
 * **python object**: if your data is a python object in columnar (`{x: [1,2], y: [3,4]}`)
   or row (`[{x:1,y:3}, {x:2,y:4}]`) format
 
-        prefix = data_py({x: [1,2], y:[3,4]})
+```
+        p = ggplot(data, aes(...)) + geom_point()
+        ggsave(p, "out.pdf", data={'x': [1,2], 'y': [3,4]})
+```
 
-* **pandas dataframe**: if your data is a `pandas` data frame object
+* **pandas dataframe**: if your data is a `pandas` data frame object already
+  you can just provide the dataframe df directly to data
 
-        prefix = data_dataframe(df)
+```
+        p = ggplot(data, aes(...)) + geom_point()
+        ggsave(p, "out.pdf", data=df)
+```
 
 * **PostgresQL**: if your data is stored in a postgres database
 
-        prefix = data_sql('DBNAME', 'SELECT * FROM ...')
+```
+        p = ggplot(data, aes(...)) + geom_point()
+        ggsave(p, "out.pdf", data=data_sql('DBNAME', 'SELECT * FROM ...')
+```
+
+* **existing R datasets**: can you refer to any dataframe object
+
+```
+        p = ggplot('diamonds', aes(...)) + geom_point()
+        ggsave(p, "out.pdf", data=None)
+```
+
 
 ### String arguments
 
-By default, the library directly prints a python string argument into the 
+By default, the library directly prints a python string argument into the
 R code string.  For example the following python code to set the x axis label
 would generate incorrect R code:
 
@@ -127,20 +151,17 @@ would generate incorrect R code:
         scales_x_continuous(name='special label')
 
 You'll need to explicitly wrap these types of strings (inteded as R strings)
-in a layer of quotes.  For convenience, we automaticall provide wrapping
+in a layer of quotes.  For convenience, we automatically provide wrapping
 for common functions:
 
         # "filename.pdf" is wrapped
         ggsave(p, "filename.pdf")
 
-        # "data.csv" is wrapped
-        data_csv("data.csv")
-
         # string values passed to data_py are naively wrapped
 
 
 
-Questions 
+Questions
 ===============
 
 Alternatives
@@ -155,4 +176,3 @@ really really good.
 * **[pyggplot](http://pypi.python.org/pypi/pyggplot/)**: Pyggplot does not adhere
 strictly to R's ggplot syntax but pythonifies it, making it harder to transpose
 ggplot2 examples. Also pyggplot requires rpy2.
-
