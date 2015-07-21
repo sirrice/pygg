@@ -16,8 +16,8 @@ quote2re = re.compile("'")
 
 
 def esc(mystr):
+    """Escape string so that it remains a string when converted to R"""
     return '"{}"'.format(quote2re.sub("\\'", quote1re.sub("\\\"", mystr)))
-
 
 
 def _to_r(o, as_data=False):
@@ -272,7 +272,7 @@ def ggsave(name, plot, data, *args, **kwargs):
 
     if name:
         stmt = GGStatement("ggsave", esc(name), varname, *args, **kwargs)
-        prog = "%s\n%s\ncat('SUCCESS')" % (prog, stmt.r)
+        prog = "%s\n%s" % (prog, stmt.r)
 
     if not quiet:
         print prog
@@ -284,15 +284,21 @@ def ggsave(name, plot, data, *args, **kwargs):
 
 
 def execute_r(prog, quiet):
-    """Run the R code prog an R subprocess"""
+    """Run the R code prog an R subprocess
+
+    @raises ValueError if the subprocess exits with non-zero status
+    """
     FNULL = open(os.devnull, 'w') if quiet else None
     try:
         input_proc = subprocess.Popen(["echo", prog], stdout=subprocess.PIPE)
-        subprocess.call("R --no-save --quiet",
-                        stdin=input_proc.stdout,
-                        stdout=FNULL,
-                        stderr=subprocess.STDOUT,
-                        shell=True) # warning, this is a security problem
+        status = subprocess.call("R --no-save --quiet",
+                                 stdin=input_proc.stdout,
+                                 stdout=FNULL,
+                                 stderr=subprocess.STDOUT,
+                                 shell=True) # warning, this is a security problem
+        if status != 0:
+            raise ValueError("ggplot2 bridge failed for program: {}."
+                             " Check for an error".format(prog))
     finally:
         if FNULL is not None:
             FNULL.close()

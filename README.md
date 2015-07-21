@@ -37,7 +37,7 @@ sudo apt-get install R
 
 ```r
 install.packages("ggplot2")
-install.packages("RPostgreSQL") # optional
+install.packages("RPostgreSQL")   # optional
 ```
 
 
@@ -150,15 +150,16 @@ would generate incorrect R code:
         # correct generated R code
         scales_x_continuous(name='special label')
 
-You'll need to explicitly wrap these types of strings (inteded as R strings)
+        # less convenient but more explicit alternative syntax
+        scales_x_continuous(name=pygg.esc('special label'))
+
+
+You'll need to explicitly wrap these types of strings (intended as R strings)
 in a layer of quotes.  For convenience, we automatically provide wrapping
 for common functions:
 
         # "filename.pdf" is wrapped
         ggsave(p, "filename.pdf")
-
-        # string values passed to data_py are naively wrapped
-        TODO -- are there examples of how this is supposed to work?
 
 
 Questions

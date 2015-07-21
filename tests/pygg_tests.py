@@ -133,11 +133,23 @@ class TestIntegration(unittest.TestCase):
         p += pygg.ggtitle(pygg.esc('Test title'))
         self.check_ggsave(p, data)
 
+    def testLimits(self):
+        p = pygg.ggplot('diamonds', pygg.aes(x='carat', y='price', color='clarity'))
+        p += pygg.geom_point(alpha=0.5, size = .75)
+        p += pygg.scale_x_log10(limits=[1, 2])
+        self.check_ggsave(p, None)
+
     def check_ggsave(self, plotobj, data, ext='.pdf'):
         tmpfile = tempfile.NamedTemporaryFile(suffix=ext).name
         pygg.ggsave(tmpfile, plotobj, data=data, quiet=True)
         self.assertTrue(os.path.exists(tmpfile))
         self.assertTrue(os.path.getsize(tmpfile) > 0)
+
+    def testBadGGPlotFails(self):
+        p = pygg.ggplot('diamonds', pygg.aes(x='MISSING')) + pygg.geom_point()
+        with self.assertRaises(ValueError):
+            tmpfile = tempfile.NamedTemporaryFile(suffix=".png").name
+            pygg.ggsave(tmpfile, p, data=None, quiet=True)
 
 
 IRIS_DATA_CSV = """SepalLength,SepalWidth,PetalLength,PetalWidth,Name
