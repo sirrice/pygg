@@ -176,6 +176,10 @@ def data_py(o, *args, **kwargs):
       v = quote1re.sub("\\\"", v)
       v = quote2re.sub("\\'", v)
       return "'%s'" % v
+    elif v == True:
+      return "T"
+    elif v == False:
+      return "F"
     return str(v)
 
   def l2rtext(l):
@@ -210,7 +214,8 @@ def data_py(o, *args, **kwargs):
   for col, vals in o.iteritems():
     stmt = "%s = %s" % (col, l2rtext(vals))
     defs.append(stmt)
-  data_arg = "cbind(%s)" % ", ".join(defs)
+  data_arg = ", ".join(defs)
+  # data_arg = "cbind(%s)" % ", ".join(defs)
 
   return "data = %s" % GGStatement("data.frame", data_arg, *args, **kwargs).r
 
@@ -333,6 +338,7 @@ qplot = mkfunc("qplot")
 factor = mkfunc("factor")
 geom_jitter = mkfunc("geom_jitter")
 geom_line = mkfunc("geom_line")
+geom_linerange = mkfunc("geom_linerange")
 geom_path = mkfunc("geom_path")
 geom_pointrange = mkfunc("geom_pointrange")
 geom_point = mkfunc("geom_point")
