@@ -6,8 +6,59 @@ import os.path
 
 import pygg
 
+class TestUnits(unittest.TestCase):
+    """Basic unit testing for pygg"""
+    def testIsDataFrame(self):
+        """Test that is_pandas_df works"""
+        df = pandas.read_csv(StringIO.StringIO(IRIS_DATA_CSV))
+        self.assertTrue(pygg.is_pandas_df(df))
+        self.assertTrue(pygg.is_pandas_df(df[0:1]))
+        self.assertFalse(pygg.is_pandas_df(df.SepalLength))
+        self.assertFalse(pygg.is_pandas_df(1))
+        self.assertFalse(pygg.is_pandas_df(1.0))
+        self.assertFalse(pygg.is_pandas_df([]))
+        self.assertFalse(pygg.is_pandas_df([1]))
+        self.assertFalse(pygg.is_pandas_df({}))
+        self.assertFalse(pygg.is_pandas_df({'a': 1}))
 
-class TestPygg(unittest.TestCase):
+    def check_me(self, stmt, expectation):
+        self.assertEquals(stmt.r.replace(" ", ""), expectation)
+
+    def testGGStatementToR(self):
+        """Test that GGStatement converts to R properly"""
+        self.check_me(pygg.geom_point(), "geom_point()")
+        self.check_me(pygg.geom_point(size=1.0), "geom_point(size=1.0)")
+        self.check_me(pygg.geom_point(size=1.0, alpha=2.0),
+                      "geom_point(alpha=2.0,size=1.0)")
+
+    def testGGStatementsToR(self):
+        """Test that GGStatement converts to R properly"""
+        self.check_me(pygg.geom_point(), "geom_point()")
+        self.check_me(pygg.geom_bar(), "geom_bar()")
+        self.check_me(pygg.geom_point() + pygg.geom_bar(),
+                      "geom_point()+geom_bar()")
+        self.check_me(pygg.geom_bar() + pygg.geom_point(),
+                      "geom_bar()+geom_point()")
+
+    def testPython2RTypes(self):
+        """Test GGStatement converts many python types properly"""
+        self.check_me(pygg.geom_point(a=1), "geom_point(a=1)")
+        self.check_me(pygg.geom_point(a=None), "geom_point(a=NA)")
+        self.check_me(pygg.geom_point(a=1.0), "geom_point(a=1.0)")
+        self.check_me(pygg.geom_point(a=1e-2), "geom_point(a=0.01)")
+        self.check_me(pygg.geom_point(a="foo"), "geom_point(a=foo)")
+        self.check_me(pygg.geom_point(a='"foo"'), 'geom_point(a="foo")')
+        self.check_me(pygg.geom_point(a=True), 'geom_point(a=TRUE)')
+        self.check_me(pygg.geom_point(a=False), 'geom_point(a=FALSE)')
+        self.check_me(pygg.geom_point(a=[1, 2]), 'geom_point(a=c(1,2))')
+        self.check_me(pygg.geom_point(a={'list1': 1, 'list2': 2}),
+                      'geom_point(a=list(list1=1,list2=2))')
+        self.check_me(pygg.geom_point(1, a=2.0, b=[3, 4],
+                                      c={'list1': '"s1"', 'list2': 2}),
+                      'geom_point(1,a=2.0,b=c(3,4),c=list(list1="s1",list2=2))')
+
+
+class TestIntegration(unittest.TestCase):
     """Basic unit testing for pygg"""
     def testE2E(self):
         """Test end-to-end creation of figures with outputs to pdf and png"""

@@ -15,8 +15,24 @@ quote1re = re.compile("\"")
 quote2re = re.compile("'")
 
 
-class GGStatement(object):
+def _to_r(o, as_data=False):
+    if o is None:
+        return "NA"
+    if hasattr(o, "r"):
+        # bridge to @property r on GGStatement(s)
+        return o.r
+    elif isinstance(o, bool):
+        return "TRUE" if o else "FALSE"
+    elif isinstance(o, (list, tuple)):
+        inner = ",".join([_to_r(x, True) for x in o])
+        return "c({})".format(inner) if as_data else inner
+    elif isinstance(o, dict):
+        inner = ",".join(["{}={}".format(k, _to_r(v, True))
+                         for k, v in sorted(o.iteritems(), key=lambda x: x[0])])
+        return "list({})".format(inner) if as_data else inner
+    return str(o)
 
+class GGStatement(object):
     def __init__(self, _name, *args, **kwargs):
         self.name = _name
         self.args = args
@@ -30,28 +46,16 @@ class GGStatement(object):
             return self.to_stmts()
         return self.to_stmts() + o.to_stmts()
 
-    @staticmethod
-    def to_r(o):
-        try:
-            return o.r
-        except:
-            pass
-
-        return str(o)
-
     @property
     def r(self):
-        args = map(GGStatement.to_r, self.args)
-        kw2s = lambda (k, v): "%s=%s" % (k, GGStatement.to_r(v))
-        kwargs = map(kw2s, self.kwargs.iteritems())
-
-        all_args = args + kwargs
-        all_args = filter(bool, all_args)
-        all_args = ", ".join(all_args)
-        cmd = "%s(%s)" % (self.name, all_args)
-        return cmd
+        """Convert this GGStatement into its R equivalent expression"""
+        r_args = [_to_r(self.args), _to_r(self.kwargs)]
+        # remove empty strings from the call args
+        r_args = ",".join([x for x in r_args if x != ""])
+        return "{}({})".format(self.name, r_args)
 
     def __str__(self):
+        """Get a string representation of this object"""
         return self.r
 
     def save(self, name, *args, **kwargs):
@@ -83,7 +87,7 @@ class GGStatements(object):
 
     @property
     def r(self):
-        return " + ".join(map(GGStatement.to_r, self.stmts))
+        return " + ".join(_to_r(x) for x in self.stmts)
 
     def __str__(self):
         return self.r
