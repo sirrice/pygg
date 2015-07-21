@@ -5,10 +5,9 @@ except ImportError:
     import ez_setup
     ez_setup.use_setuptools()
 from setuptools import setup, find_packages
-import pygg
 
 setup(name="pygg",
-      version=pygg.__version__,
+      version="0.0.7",
       description="ggplot2 syntax for python.  Runs R version of ggplot2 under the covers",
       license="MIT",
       author="Eugene Wu",
