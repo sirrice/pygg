@@ -65,7 +65,7 @@ from pygg import *
 # Example using diamonds dataset (comes with ggplot2)
 p = ggplot('diamonds', aes('carat', y='price'))
 g = geom_point() + facet_wrap(None, "color")
-ggsave("test1.pdf", p+g)
+ggsave("test1.pdf", p+g, data=None)
 ```
 
 
@@ -158,7 +158,7 @@ for common functions:
         ggsave(p, "filename.pdf")
 
         # string values passed to data_py are naively wrapped
-
+        TODO -- are there examples of how this is supposed to work?
 
 
 Questions

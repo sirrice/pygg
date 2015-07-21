@@ -25,6 +25,7 @@ class TestUnits(unittest.TestCase):
         self.assertFalse(pygg.is_pandas_df({'a': 1}))
 
     def check_me(self, stmt, expectation):
+        print(stmt.r)
         self.assertEquals(stmt.r.replace(" ", ""), expectation)
 
     def testDataPyWithDF(self):
@@ -86,16 +87,27 @@ class TestUnits(unittest.TestCase):
         self.check_me(pygg.geom_point(a=None), "geom_point(a=NA)")
         self.check_me(pygg.geom_point(a=1.0), "geom_point(a=1.0)")
         self.check_me(pygg.geom_point(a=1e-2), "geom_point(a=0.01)")
-        self.check_me(pygg.geom_point(a="foo"), "geom_point(a=foo)")
-        self.check_me(pygg.geom_point(a='"foo"'), 'geom_point(a="foo")')
+        self.check_me(pygg.geom_point(a="foo"), 'geom_point(a=foo)')
+        self.check_me(pygg.geom_point(a=pygg.esc("foo")), 'geom_point(a="foo")')
         self.check_me(pygg.geom_point(a=True), 'geom_point(a=TRUE)')
         self.check_me(pygg.geom_point(a=False), 'geom_point(a=FALSE)')
         self.check_me(pygg.geom_point(a=[1, 2]), 'geom_point(a=c(1,2))')
         self.check_me(pygg.geom_point(a={'list1': 1, 'list2': 2}),
                       'geom_point(a=list(list1=1,list2=2))')
         self.check_me(pygg.geom_point(1, a=2.0, b=[3, 4],
-                                      c={'list1': '"s1"', 'list2': 2}),
+                                      c={'list1': pygg.esc('s1'), 'list2': 2}),
                       'geom_point(1,a=2.0,b=c(3,4),c=list(list1="s1",list2=2))')
+
+    def testPython2RStringEsc(self):
+        """Test GGStatement escapes strings properly"""
+        self.check_me(pygg.geom_point(a="b"), 'geom_point(a=b)')
+        self.check_me(pygg.geom_point(a='b'), 'geom_point(a=b)')
+        self.check_me(pygg.geom_point(a="'b'"), 'geom_point(a=\'b\')')
+        self.check_me(pygg.geom_point(a='"b"'), 'geom_point(a="b")')
+        self.check_me(pygg.geom_point(a={'k': pygg.esc("v")}),
+                                      'geom_point(a=list(k="v"))')
+        self.check_me(pygg.geom_point(a=[pygg.esc("a"), pygg.esc("b")]),
+                                      'geom_point(a=c("a","b"))')
 
 
 class TestIntegration(unittest.TestCase):
@@ -118,12 +130,11 @@ class TestIntegration(unittest.TestCase):
                         pygg.aes(x='SepalLength', y='PetalLength', color='Name'))
         p += pygg.geom_point()
         p += pygg.geom_smooth()
-        p += pygg.ggtitle('"Test title"')
+        p += pygg.ggtitle(pygg.esc('Test title'))
         self.check_ggsave(p, data)
 
     def check_ggsave(self, plotobj, data, ext='.pdf'):
-        tmpfile = 'foo' + ext   # TODO -- fixme
-        #tmpfile = tempfile.NamedTemporaryFile(suffix=ext).name
+        tmpfile = tempfile.NamedTemporaryFile(suffix=ext).name
         pygg.ggsave(tmpfile, plotobj, data=data, quiet=True)
         self.assertTrue(os.path.exists(tmpfile))
         self.assertTrue(os.path.getsize(tmpfile) > 0)

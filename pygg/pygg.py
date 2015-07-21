@@ -11,13 +11,21 @@ import tempfile
 
 import pandas
 
-quote1re = re.compile("\"")
+quote1re = re.compile('"')
 quote2re = re.compile("'")
 
 
+def esc(mystr):
+    return '"{}"'.format(quote2re.sub("\\'", quote1re.sub("\\\"", mystr)))
+
+
+
 def _to_r(o, as_data=False):
+    """Helper function to convert python data structures to R equivalents"""
     if o is None:
         return "NA"
+    if isinstance(o, basestring):
+        return o
     if hasattr(o, "r"):
         # bridge to @property r on GGStatement(s)
         return o.r
@@ -31,6 +39,7 @@ def _to_r(o, as_data=False):
                          for k, v in sorted(o.iteritems(), key=lambda x: x[0])])
         return "list({})".format(inner) if as_data else inner
     return str(o)
+
 
 class GGStatement(object):
     def __init__(self, _name, *args, **kwargs):
@@ -125,7 +134,7 @@ def data_sql(db, sql):
     con = dbConnect(drv, dbname='%(db_name)s')
     q = "%(query)s"
     data = dbGetQuery(con, q)
-  """
+    """
 
     return cmd % {
         'db_name': db,
@@ -163,8 +172,8 @@ def data_py(o, *args, **kwargs):
             o = pandas.DataFrame(o)
         fname = tempfile.NamedTemporaryFile().name
         o.to_csv(fname, sep=',', encoding='utf-8', index=False)
-    kwargs["sep"] = '","'
-    read_csv_stmt = GGStatement("read.csv", '"%s"' % fname, *args, **kwargs).r
+    kwargs["sep"] = esc(',')
+    read_csv_stmt = GGStatement("read.csv", esc(fname), *args, **kwargs).r
     return fname, "data = {}".format(read_csv_stmt)
 
 
@@ -238,21 +247,32 @@ def ggsave(name, plot, data, *args, **kwargs):
     prefix = kwargs.get('prefix', '')
     quiet = kwargs.get("quiet", False)
     kwargs = {k: v for k, v in kwargs.iteritems()
-              if v is not None and key not in keys_to_rm}
+              if v is not None and k not in keys_to_rm}
     kwdefaults.update(kwargs)
     kwargs = kwdefaults
 
+    # figure out how to load data in the R environment
+    if data is None:
+        # Don't load anything, the data source is already present in R
+        data_src = ''
+    elif 'RPostgreSQL' in data:
+        # Hack to allow through data_sql results
+        data_src = data
+    else:
+        # format the python data object
+        data_src = data_py(data)[1]
+
     prog = "%(header)s\n%(prefix)s\n%(data)s\n%(varname)s = %(prog)s" % {
         'header': "library(ggplot2)",
-        'data': '' if data is None else data_py(data)[1],
+        'data': data_src,
         'prefix': prefix,
         'varname': varname,
         'prog': plot.r
     }
 
     if name:
-        stmt = GGStatement("ggsave", "'%s'" % name, varname, *args, **kwargs)
-        prog = "%s\n%s" % (prog, stmt.r)
+        stmt = GGStatement("ggsave", esc(name), varname, *args, **kwargs)
+        prog = "%s\n%s\ncat('SUCCESS')" % (prog, stmt.r)
 
     if not quiet:
         print prog
@@ -265,185 +285,193 @@ def ggsave(name, plot, data, *args, **kwargs):
 
 def execute_r(prog, quiet):
     """Run the R code prog an R subprocess"""
-    with open(os.devnull, 'w') if quiet else None as FNULL:
+    FNULL = open(os.devnull, 'w') if quiet else None
+    try:
         input_proc = subprocess.Popen(["echo", prog], stdout=subprocess.PIPE)
         subprocess.call("R --no-save --quiet",
                         stdin=input_proc.stdout,
                         stdout=FNULL,
                         stderr=subprocess.STDOUT,
-                        shell=True)
+                        shell=True) # warning, this is a security problem
+    finally:
+        if FNULL is not None:
+            FNULL.close()
 
+###################################################
+#
+#  Code to actually generate the ggplot2 functions
+#
+###################################################
 
-# TODO -- remove gen_cmds and put the building code right here
-def mkfunc(fname):
+def make_ggplot2_binding(fname):
     def f(*args, **kwargs):
         return GGStatement(fname, *args, **kwargs)
     f.__name__ = fname
     return f
 
-ggplot = mkfunc("ggplot")
-qplot = mkfunc("qplot")
-factor = mkfunc("factor")
-geom_jitter = mkfunc("geom_jitter")
-geom_line = mkfunc("geom_line")
-geom_path = mkfunc("geom_path")
-geom_pointrange = mkfunc("geom_pointrange")
-geom_point = mkfunc("geom_point")
-geom_quantile = mkfunc("geom_quantile")
-geom_rect = mkfunc("geom_rect")
-geom_ribbon = mkfunc("geom_ribbon")
-geom_segment = mkfunc("geom_segment")
-geom_rug = mkfunc("geom_rug")
-geom_step = mkfunc("geom_step")
-geom_text = mkfunc("geom_text")
-geom_tile = mkfunc("geom_tile")
-geom_violin = mkfunc("geom_violin")
-geom_vlin = mkfunc("geom_vlin")
-geom_polygon = mkfunc("geom_polygon")
-geom_abline = mkfunc("geom_abline")
-geom_area = mkfunc("geom_area")
-geom_bar = mkfunc("geom_bar")
-geom_bin2d = mkfunc("geom_bin2d")
-geom_blank = mkfunc("geom_blank")
-geom_boxplot = mkfunc("geom_boxplot")
-geom_contour = mkfunc("geom_contour")
-geom_crossbar = mkfunc("geom_crossbar")
-geom_density = mkfunc("geom_density")
-geom_density2d = mkfunc("geom_density2d")
-geom_dotplot = mkfunc("geom_dotplot")
-geom_errorbar = mkfunc("geom_errorbar")
-geom_errorbarh = mkfunc("geom_errorbarh")
-geom_freqpoly = mkfunc("geom_freqpoly")
-geom_hex = mkfunc("geom_hex")
-geom_histogram = mkfunc("geom_histogram")
-geom_hline = mkfunc("geom_hline")
-geom_vline = mkfunc("geom_vline")
-stat_bin = mkfunc("stat_bin")
-stat_bin2d = mkfunc("stat_bin2d")
-stat_bindot = mkfunc("stat_bindot")
-stat_binhex = mkfunc("stat_binhex")
-stat_boxplot = mkfunc("stat_boxplot")
-stat_contour = mkfunc("stat_contour")
-stat_density = mkfunc("stat_density")
-stat_density2d = mkfunc("stat_density2d")
-stat_ecdf = mkfunc("stat_ecdf")
-stat_function = mkfunc("stat_function")
-stat_identify = mkfunc("stat_identify")
-stat_qq = mkfunc("stat_qq")
-stat_quantile = mkfunc("stat_quantile")
-stat_smooth = mkfunc("stat_smooth")
-stat_spoke = mkfunc("stat_spoke")
-stat_sum = mkfunc("stat_sum")
-stat_summary = mkfunc("stat_summary")
-stat_unique = mkfunc("stat_unique")
-stat_ydensity = mkfunc("stat_ydensity")
-expand_limits = mkfunc("expand_limits")
-guides = mkfunc("guides")
-guide_legend = mkfunc("guide_legend")
-guide_colourbar = mkfunc("guide_colourbar")
-scale_alpha = mkfunc("scale_alpha")
-scale_alpha_continuous = mkfunc("scale_alpha_continuous")
-scale_alpha_discrete = mkfunc("scale_alpha_discrete")
-scale_area = mkfunc("scale_area")
-scale_colour_brewer = mkfunc("scale_colour_brewer")
-scale_color_brewer = mkfunc("scale_color_brewer")
-scale_fill_brewer = mkfunc("scale_fill_brewer")
-scale_colour_gradient = mkfunc("scale_colour_gradient")
-scale_color_gradient = mkfunc("scale_color_gradient")
-scale_color_continuous = mkfunc("scale_color_continuous")
-scale_color_gradient = mkfunc("scale_color_gradient")
-scale_colour_continuous = mkfunc("scale_colour_continuous")
-scale_fill_continuous = mkfunc("scale_fill_continuous")
-scale_fill_gradient = mkfunc("scale_fill_gradient")
-scale_colour_gradient2 = mkfunc("scale_colour_gradient2")
-scale_color_gradient2 = mkfunc("scale_color_gradient2")
-scale_fill_gradient2 = mkfunc("scale_fill_gradient2")
-scale_colour_gradientn = mkfunc("scale_colour_gradientn")
-scale_color_gradientn = mkfunc("scale_color_gradientn")
-scale_fill_gradientn = mkfunc("scale_fill_gradientn")
-scale_colour_grey = mkfunc("scale_colour_grey")
-scale_color_grey = mkfunc("scale_color_grey")
-scale_fill_grey = mkfunc("scale_fill_grey")
-scale_colour_hue = mkfunc("scale_colour_hue")
-scale_color_discrete = mkfunc("scale_color_discrete")
-scale_color_hue = mkfunc("scale_color_hue")
-scale_colour_discrete = mkfunc("scale_colour_discrete")
-scale_fill_discrete = mkfunc("scale_fill_discrete")
-scale_fill_hue = mkfunc("scale_fill_hue")
-scale_identity = mkfunc("scale_identity")
-scale_alpha_identity = mkfunc("scale_alpha_identity")
-scale_color_identity = mkfunc("scale_color_identity")
-scale_colour_identity = mkfunc("scale_colour_identity")
-scale_fill_identity = mkfunc("scale_fill_identity")
-scale_linetype_identity = mkfunc("scale_linetype_identity")
-scale_shape_identity = mkfunc("scale_shape_identity")
-scale_size_identity = mkfunc("scale_size_identity")
-scale_manual = mkfunc("scale_manual")
-scale_alpha_manual = mkfunc("scale_alpha_manual")
-scale_color_manual = mkfunc("scale_color_manual")
-scale_colour_manual = mkfunc("scale_colour_manual")
-scale_fill_manual = mkfunc("scale_fill_manual")
-scale_linetype_manual = mkfunc("scale_linetype_manual")
-scale_shape_manual = mkfunc("scale_shape_manual")
-scale_size_manual = mkfunc("scale_size_manual")
-scale_size = mkfunc("scale_size")
-scale_size_continuous = mkfunc("scale_size_continuous")
-scale_size_discrete = mkfunc("scale_size_discrete")
-scale_linetype = mkfunc("scale_linetype")
-scale_linetype_continuous = mkfunc("scale_linetype_continuous")
-scale_linetype_discrete = mkfunc("scale_linetype_discrete")
-scale_shape = mkfunc("scale_shape")
-scale_shape_continuous = mkfunc("scale_shape_continuous")
-scale_shape_discrete = mkfunc("scale_shape_discrete")
-scale_x_continuous = mkfunc("scale_x_continuous")
-scale_x_log10 = mkfunc("scale_x_log10")
-scale_x_reverse = mkfunc("scale_x_reverse")
-scale_x_sqrt = mkfunc("scale_x_sqrt")
-scale_y_continuous = mkfunc("scale_y_continuous")
-scale_y_log10 = mkfunc("scale_y_log10")
-scale_y_reverse = mkfunc("scale_y_reverse")
-scale_y_sqrt = mkfunc("scale_y_sqrt")
-scale_x_date = mkfunc("scale_x_date")
-scale_y_datetime = mkfunc("scale_y_datetime")
-scale_x_datetime = mkfunc("scale_x_datetime")
-scale_y_datetime = mkfunc("scale_y_datetime")
-scale_x_discrete = mkfunc("scale_x_discrete")
-scale_y_discrete = mkfunc("scale_y_discrete")
-xlim = mkfunc("xlim")
-ylim = mkfunc("ylim")
-coord_fixed = mkfunc("coord_fixed")
-coord_flip = mkfunc("coord_flip")
-coord_map = mkfunc("coord_map")
-coord_polar = mkfunc("coord_polar")
-coord_trans = mkfunc("coord_trans")
-label_both = mkfunc("label_both")
-label_bquote = mkfunc("label_bquote")
-label_parsed = mkfunc("label_parsed")
-label_value = mkfunc("label_value")
-position_dodge = mkfunc("position_dodge")
-position_fill = mkfunc("position_fill")
-position_identity = mkfunc("position_identity")
-position_stack = mkfunc("position_stack")
-position_jitter = mkfunc("position_jitter")
-annotate = mkfunc("annotate")
-annotation_custom = mkfunc("annotation_custom")
-annotation_logticks = mkfunc("annotation_logticks")
-annotation_map = mkfunc("annotation_map")
-annotation_raster = mkfunc("annotation_raster")
-borders = mkfunc("borders")
-add_theme = mkfunc("add_theme")
-calc_element = mkfunc("calc_element")
-element_blank = mkfunc("element_blank")
-element_line = mkfunc("element_line")
-element_rect = mkfunc("element_rect")
-element_text = mkfunc("element_text")
-theme = mkfunc("theme")
-theme_bw = mkfunc("theme_bw")
-theme_grey = mkfunc("theme_grey")
-theme_classic = mkfunc("theme_classic")
-aes = mkfunc("aes")
-aes_all = mkfunc("aes_all")
-aes_auto = mkfunc("aes_auto")
-aes_string = mkfunc("aes_string")
-geom_smooth = mkfunc("geom_smooth")
-ggtitle = mkfunc("ggtitle")
+ggplot = make_ggplot2_binding("ggplot")
+qplot = make_ggplot2_binding("qplot")
+factor = make_ggplot2_binding("factor")
+geom_jitter = make_ggplot2_binding("geom_jitter")
+geom_line = make_ggplot2_binding("geom_line")
+geom_path = make_ggplot2_binding("geom_path")
+geom_pointrange = make_ggplot2_binding("geom_pointrange")
+geom_point = make_ggplot2_binding("geom_point")
+geom_quantile = make_ggplot2_binding("geom_quantile")
+geom_rect = make_ggplot2_binding("geom_rect")
+geom_ribbon = make_ggplot2_binding("geom_ribbon")
+geom_segment = make_ggplot2_binding("geom_segment")
+geom_rug = make_ggplot2_binding("geom_rug")
+geom_step = make_ggplot2_binding("geom_step")
+geom_text = make_ggplot2_binding("geom_text")
+geom_tile = make_ggplot2_binding("geom_tile")
+geom_violin = make_ggplot2_binding("geom_violin")
+geom_vlin = make_ggplot2_binding("geom_vlin")
+geom_polygon = make_ggplot2_binding("geom_polygon")
+geom_abline = make_ggplot2_binding("geom_abline")
+geom_area = make_ggplot2_binding("geom_area")
+geom_bar = make_ggplot2_binding("geom_bar")
+geom_bin2d = make_ggplot2_binding("geom_bin2d")
+geom_blank = make_ggplot2_binding("geom_blank")
+geom_boxplot = make_ggplot2_binding("geom_boxplot")
+geom_contour = make_ggplot2_binding("geom_contour")
+geom_crossbar = make_ggplot2_binding("geom_crossbar")
+geom_density = make_ggplot2_binding("geom_density")
+geom_density2d = make_ggplot2_binding("geom_density2d")
+geom_dotplot = make_ggplot2_binding("geom_dotplot")
+geom_errorbar = make_ggplot2_binding("geom_errorbar")
+geom_errorbarh = make_ggplot2_binding("geom_errorbarh")
+geom_freqpoly = make_ggplot2_binding("geom_freqpoly")
+geom_hex = make_ggplot2_binding("geom_hex")
+geom_histogram = make_ggplot2_binding("geom_histogram")
+geom_hline = make_ggplot2_binding("geom_hline")
+geom_vline = make_ggplot2_binding("geom_vline")
+stat_bin = make_ggplot2_binding("stat_bin")
+stat_bin2d = make_ggplot2_binding("stat_bin2d")
+stat_bindot = make_ggplot2_binding("stat_bindot")
+stat_binhex = make_ggplot2_binding("stat_binhex")
+stat_boxplot = make_ggplot2_binding("stat_boxplot")
+stat_contour = make_ggplot2_binding("stat_contour")
+stat_density = make_ggplot2_binding("stat_density")
+stat_density2d = make_ggplot2_binding("stat_density2d")
+stat_ecdf = make_ggplot2_binding("stat_ecdf")
+stat_function = make_ggplot2_binding("stat_function")
+stat_identify = make_ggplot2_binding("stat_identify")
+stat_qq = make_ggplot2_binding("stat_qq")
+stat_quantile = make_ggplot2_binding("stat_quantile")
+stat_smooth = make_ggplot2_binding("stat_smooth")
+stat_spoke = make_ggplot2_binding("stat_spoke")
+stat_sum = make_ggplot2_binding("stat_sum")
+stat_summary = make_ggplot2_binding("stat_summary")
+stat_unique = make_ggplot2_binding("stat_unique")
+stat_ydensity = make_ggplot2_binding("stat_ydensity")
+expand_limits = make_ggplot2_binding("expand_limits")
+guides = make_ggplot2_binding("guides")
+guide_legend = make_ggplot2_binding("guide_legend")
+guide_colourbar = make_ggplot2_binding("guide_colourbar")
+scale_alpha = make_ggplot2_binding("scale_alpha")
+scale_alpha_continuous = make_ggplot2_binding("scale_alpha_continuous")
+scale_alpha_discrete = make_ggplot2_binding("scale_alpha_discrete")
+scale_area = make_ggplot2_binding("scale_area")
+scale_colour_brewer = make_ggplot2_binding("scale_colour_brewer")
+scale_color_brewer = make_ggplot2_binding("scale_color_brewer")
+scale_fill_brewer = make_ggplot2_binding("scale_fill_brewer")
+scale_colour_gradient = make_ggplot2_binding("scale_colour_gradient")
+scale_color_gradient = make_ggplot2_binding("scale_color_gradient")
+scale_color_continuous = make_ggplot2_binding("scale_color_continuous")
+scale_color_gradient = make_ggplot2_binding("scale_color_gradient")
+scale_colour_continuous = make_ggplot2_binding("scale_colour_continuous")
+scale_fill_continuous = make_ggplot2_binding("scale_fill_continuous")
+scale_fill_gradient = make_ggplot2_binding("scale_fill_gradient")
+scale_colour_gradient2 = make_ggplot2_binding("scale_colour_gradient2")
+scale_color_gradient2 = make_ggplot2_binding("scale_color_gradient2")
+scale_fill_gradient2 = make_ggplot2_binding("scale_fill_gradient2")
+scale_colour_gradientn = make_ggplot2_binding("scale_colour_gradientn")
+scale_color_gradientn = make_ggplot2_binding("scale_color_gradientn")
+scale_fill_gradientn = make_ggplot2_binding("scale_fill_gradientn")
+scale_colour_grey = make_ggplot2_binding("scale_colour_grey")
+scale_color_grey = make_ggplot2_binding("scale_color_grey")
+scale_fill_grey = make_ggplot2_binding("scale_fill_grey")
+scale_colour_hue = make_ggplot2_binding("scale_colour_hue")
+scale_color_discrete = make_ggplot2_binding("scale_color_discrete")
+scale_color_hue = make_ggplot2_binding("scale_color_hue")
+scale_colour_discrete = make_ggplot2_binding("scale_colour_discrete")
+scale_fill_discrete = make_ggplot2_binding("scale_fill_discrete")
+scale_fill_hue = make_ggplot2_binding("scale_fill_hue")
+scale_identity = make_ggplot2_binding("scale_identity")
+scale_alpha_identity = make_ggplot2_binding("scale_alpha_identity")
+scale_color_identity = make_ggplot2_binding("scale_color_identity")
+scale_colour_identity = make_ggplot2_binding("scale_colour_identity")
+scale_fill_identity = make_ggplot2_binding("scale_fill_identity")
+scale_linetype_identity = make_ggplot2_binding("scale_linetype_identity")
+scale_shape_identity = make_ggplot2_binding("scale_shape_identity")
+scale_size_identity = make_ggplot2_binding("scale_size_identity")
+scale_manual = make_ggplot2_binding("scale_manual")
+scale_alpha_manual = make_ggplot2_binding("scale_alpha_manual")
+scale_color_manual = make_ggplot2_binding("scale_color_manual")
+scale_colour_manual = make_ggplot2_binding("scale_colour_manual")
+scale_fill_manual = make_ggplot2_binding("scale_fill_manual")
+scale_linetype_manual = make_ggplot2_binding("scale_linetype_manual")
+scale_shape_manual = make_ggplot2_binding("scale_shape_manual")
+scale_size_manual = make_ggplot2_binding("scale_size_manual")
+scale_size = make_ggplot2_binding("scale_size")
+scale_size_continuous = make_ggplot2_binding("scale_size_continuous")
+scale_size_discrete = make_ggplot2_binding("scale_size_discrete")
+scale_linetype = make_ggplot2_binding("scale_linetype")
+scale_linetype_continuous = make_ggplot2_binding("scale_linetype_continuous")
+scale_linetype_discrete = make_ggplot2_binding("scale_linetype_discrete")
+scale_shape = make_ggplot2_binding("scale_shape")
+scale_shape_continuous = make_ggplot2_binding("scale_shape_continuous")
+scale_shape_discrete = make_ggplot2_binding("scale_shape_discrete")
+scale_x_continuous = make_ggplot2_binding("scale_x_continuous")
+scale_x_log10 = make_ggplot2_binding("scale_x_log10")
+scale_x_reverse = make_ggplot2_binding("scale_x_reverse")
+scale_x_sqrt = make_ggplot2_binding("scale_x_sqrt")
+scale_y_continuous = make_ggplot2_binding("scale_y_continuous")
+scale_y_log10 = make_ggplot2_binding("scale_y_log10")
+scale_y_reverse = make_ggplot2_binding("scale_y_reverse")
+scale_y_sqrt = make_ggplot2_binding("scale_y_sqrt")
+scale_x_date = make_ggplot2_binding("scale_x_date")
+scale_y_datetime = make_ggplot2_binding("scale_y_datetime")
+scale_x_datetime = make_ggplot2_binding("scale_x_datetime")
+scale_y_datetime = make_ggplot2_binding("scale_y_datetime")
+scale_x_discrete = make_ggplot2_binding("scale_x_discrete")
+scale_y_discrete = make_ggplot2_binding("scale_y_discrete")
+xlim = make_ggplot2_binding("xlim")
+ylim = make_ggplot2_binding("ylim")
+coord_fixed = make_ggplot2_binding("coord_fixed")
+coord_flip = make_ggplot2_binding("coord_flip")
+coord_map = make_ggplot2_binding("coord_map")
+coord_polar = make_ggplot2_binding("coord_polar")
+coord_trans = make_ggplot2_binding("coord_trans")
+label_both = make_ggplot2_binding("label_both")
+label_bquote = make_ggplot2_binding("label_bquote")
+label_parsed = make_ggplot2_binding("label_parsed")
+label_value = make_ggplot2_binding("label_value")
+position_dodge = make_ggplot2_binding("position_dodge")
+position_fill = make_ggplot2_binding("position_fill")
+position_identity = make_ggplot2_binding("position_identity")
+position_stack = make_ggplot2_binding("position_stack")
+position_jitter = make_ggplot2_binding("position_jitter")
+annotate = make_ggplot2_binding("annotate")
+annotation_custom = make_ggplot2_binding("annotation_custom")
+annotation_logticks = make_ggplot2_binding("annotation_logticks")
+annotation_map = make_ggplot2_binding("annotation_map")
+annotation_raster = make_ggplot2_binding("annotation_raster")
+borders = make_ggplot2_binding("borders")
+add_theme = make_ggplot2_binding("add_theme")
+calc_element = make_ggplot2_binding("calc_element")
+element_blank = make_ggplot2_binding("element_blank")
+element_line = make_ggplot2_binding("element_line")
+element_rect = make_ggplot2_binding("element_rect")
+element_text = make_ggplot2_binding("element_text")
+theme = make_ggplot2_binding("theme")
+theme_bw = make_ggplot2_binding("theme_bw")
+theme_grey = make_ggplot2_binding("theme_grey")
+theme_classic = make_ggplot2_binding("theme_classic")
+aes = make_ggplot2_binding("aes")
+aes_all = make_ggplot2_binding("aes_all")
+aes_auto = make_ggplot2_binding("aes_auto")
+aes_string = make_ggplot2_binding("aes_string")
+geom_smooth = make_ggplot2_binding("geom_smooth")
+ggtitle = make_ggplot2_binding("ggtitle")
