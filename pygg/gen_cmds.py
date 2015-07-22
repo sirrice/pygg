@@ -1,8 +1,11 @@
 cmds = """
 ggplot
 qplot
+factor
+opts
 geom_jitter
 geom_line
+geom_linerange
 geom_path
 geom_pointrange
 geom_point

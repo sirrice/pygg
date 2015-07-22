@@ -182,9 +182,9 @@ def data_py(o, *args, **kwargs):
             v = quote1re.sub("\\\"", v)
             v = quote2re.sub("\\'", v)
             return "'%s'" % v
-        elif v == True:
+        elif isinstance(v, bool) and v is True:
             return "T"
-        elif v == False:
+        elif isinstance(v, bool) and v is False:
             return "F"
         return str(v)
 
@@ -342,6 +342,7 @@ def mkfunc(fname):
 ggplot = mkfunc("ggplot")
 qplot = mkfunc("qplot")
 factor = mkfunc("factor")
+opts = mkfunc("opts")
 geom_jitter = mkfunc("geom_jitter")
 geom_line = mkfunc("geom_line")
 geom_linerange = mkfunc("geom_linerange")
