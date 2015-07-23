@@ -312,6 +312,7 @@ def make_ggplot2_binding(fname):
 ggplot = make_ggplot2_binding("ggplot")
 qplot = make_ggplot2_binding("qplot")
 factor = make_ggplot2_binding("factor")
+opts = make_ggplot2_binding("opts")
 geom_jitter = make_ggplot2_binding("geom_jitter")
 geom_line = make_ggplot2_binding("geom_line")
 geom_linerange = make_ggplot2_binding("geom_linerange")
