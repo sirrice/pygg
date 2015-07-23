@@ -44,57 +44,60 @@ def main(c, prefix, csv, db, sql, o, w, h, scale):
     p.save("test.pdf", prefix=prefix)
 
 
-  Use convenience functions generate prefix string for loading data
+  Use convenience, ggsave() takes a data=... keyword argument for common data objects
 
     \b
     # load from database query
-    prefix = data_sql('DBNAME', 'SELECT * FROM T')
+    ggsave(..., data = data_sql('DBNAME', 'SELECT * FROM T'))
 
     \b
     # load from CSV file.  Takse same arguments as R's read.csv
-    prefix = data_csv("FILENAME", sep=',')
+    ggsave(..., data = "FILENAME.csv")
+    # or, to control the seperator :
+    ggsave(..., prefix = data_csv("FILENAME", sep=','))
 
     \b
     # load column or row oriented python object.  Run help(data_py) for more details
-    prefix = data_py({'x': [0,1,2], 'y': [9,8,7]})
-    prefix = data_py([{'x': 0, 'y': 1}, {'x': 2, 'y': 3})
+    ggsave(..., data = {'x': [0,1,2], 'y': [9,8,7]})
+    ggsave(..., data = [{'x': 0, 'y': 1}, {'x': 2, 'y': 3}])
 
     \b
     df = ...pandas DataFrame object...
-    prefix = data_dataframe(df)
-    # functionally equivalent 
-    prefix = data_py(df)
+    ggsave(..., data = df)
 
 
   Example commands
 
     \b
-    python pygg -db database -sql "SELECT x,y FROM T" -c "ggplot('data', aes('x', 'y')) + geom_point()"
-    python pygg -csv mydata.csv -c "ggplot('data', aes(x='attr1', y='attr2')) + geom_point()"
+    python runpygg -db database -sql "SELECT 1 as x, 2 as y" -c "ggplot('data', aes('x', 'y')) + geom_point()" -o test.pdf
+    python runpygg -csv mydata.csv -c "ggplot('data', aes(x='attr1', y='attr2')) + geom_point()"
 
 
-  Caveats: Does not copy and import data between python and R, so pygg depends on setting the prefix to load the appropriate data into an R variable so that ggplot can load it:
+  Caveats: Does not copy and import data between python and R, so pygg only works for SQL or CSV file inputs
   """
 
   if not c: 
     print "no command.  exiting"
     return
 
-  prefix = filter(bool, [prefix])
+  kwargs = {
+    'width': w,
+    'height': h,
+    'scale': scale,
+    'prefix': '\n'.join(filter(bool, [prefix]))
+  }
 
   if csv:
-    csvprefix = data_csv(csv)
-    if csvprefix:
-      prefix.append(csvprefix)
+    kwargs['data'] = csv
   else:
-    sqlprefix = data_sql(db, sql)
-    if sqlprefix:
-      prefix.append(sqlprefix)
-  prefix = "\n".join(prefix)
+    kwargs['data'] = data_sql(db, sql)
 
   c = "plot = %s" % c
-  exec c
-  plot.save(o, prefix=prefix, width=w, height=h, scale=scale)
+  if o:
+    exec c
+    plot.save(o, **kwargs)
+  else:
+    print c
 
 
 if __name__ == "__main__":
