@@ -7,7 +7,7 @@ except ImportError:
 from setuptools import setup, find_packages
 
 setup(name="pygg",
-      version="0.1.0",
+      version="0.1.1",
       description="ggplot2 syntax for python.  Runs R version of ggplot2 under the covers",
       license="MIT",
       author="Eugene Wu",
@@ -20,6 +20,6 @@ setup(name="pygg",
         'bin/runpygg.py'
       ],
       install_requires = [
-        'click'
+        'click', 'pandas'
       ],
       keywords= "")
