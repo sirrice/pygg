@@ -19,6 +19,13 @@ def esc(mystr):
     """Escape string so that it remains a string when converted to R"""
     return '"{}"'.format(quote2re.sub("\\'", quote1re.sub("\\\"", mystr)))
 
+def is_escaped(s):
+    quotes = ["'", '"']
+    for q in quotes:
+        if s.startswith(q) and s.endswith(q):
+            return True
+    return False
+
 
 def _to_r(o, as_data=False):
     """Helper function to convert python data structures to R equivalents"""
@@ -180,38 +187,25 @@ def data_py(o, *args, **kwargs):
 ###################################################
 #
 #  Facets use R formulas x ~ y.  We need custom API for them
-#  e.g., facet_grid(x, y, ...)
+#  e.g., facet_grid(formula, ...)
 #
 ###################################################
 
-# TODO -- is this really necessary?  Why can't we pass in a formula as a string?
-def facet_wrap(x, y, *args, **kwargs):
-    if not x and not y:
-        print "WARN: facet_wrap got x=None, y=None"
+
+def facet_wrap(formula, *args, **kwargs):
+    if not formula:
+        print "WARN: facet_wrap got None"
         return None
-    if not x:
-        x = ""
-    if not y:
-        y = "."
 
-    facets = "%s~%s" % (x, y)
-    return GGStatement("facet_wrap", facets, *args, **kwargs)
+    return GGStatement("facet_wrap", formula, *args, **kwargs)
 
 
-def facet_grid(x, y, *args, **kwargs):
-    facets = filter(bool, [x, y])
-    if not facets:
-        print "WARN: facet_grid got x=None, y=None"
+def facet_grid(formula, *args, **kwargs):
+    if not formula:
+        print "WARN: facet_grid got None"
         return None
-    facets = "%s~" % "+".join(facets)
 
-    if not x:
-        x = "."
-    if not y:
-        y = "."
-
-    facets = "%s~%s" % (x, y)
-    return GGStatement("facet_grid", facets, *args, **kwargs)
+    return GGStatement("facet_grid", formula, *args, **kwargs)
 
 
 ###################################################

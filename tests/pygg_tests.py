@@ -139,6 +139,19 @@ class TestIntegration(unittest.TestCase):
         p += pygg.scale_x_log10(limits=[1, 2])
         self.check_ggsave(p, None)
 
+    def testFacets1(self):
+        p = pygg.ggplot('diamonds', pygg.aes(x='carat', y='price')) 
+        p += pygg.geom_point()
+        p += pygg.facet_grid("clarity~.")
+        self.check_ggsave(p, None)
+
+    def testFacets2(self):
+        p = pygg.ggplot('diamonds', pygg.aes(x='carat', y='price')) 
+        p += pygg.geom_point()
+        p += pygg.facet_wrap("~clarity")
+        self.check_ggsave(p, None)
+
+
     def check_ggsave(self, plotobj, data, ext='.pdf'):
         tmpfile = tempfile.NamedTemporaryFile(suffix=ext).name
         pygg.ggsave(tmpfile, plotobj, data=data, quiet=True)
