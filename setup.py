@@ -20,6 +20,6 @@ setup(name="pygg",
         'bin/runpygg.py'
       ],
       install_requires = [
-        'click'     # I removed the click import as it wasn't used -- keep?
+        'click'
       ],
       keywords= "")
