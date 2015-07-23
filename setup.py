@@ -14,12 +14,12 @@ setup(name="pygg",
       author_email="ewu@cs.columbia.edu",
       url="http://github.com/sirrice/pygg",
       packages = find_packages(),
-      include_package_data = True,      
+      include_package_data = True,
       package_dir = {'pygg' : 'pygg'},
       scripts = [
         'bin/runpygg.py'
       ],
       install_requires = [
-        'click'
+        'click'     # I removed the click import as it wasn't used -- keep?
       ],
       keywords= "")

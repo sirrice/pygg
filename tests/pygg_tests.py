@@ -5,9 +5,112 @@ import tempfile
 import os.path
 
 import pygg
+import pandas.util.testing as pdt
+
+# TODO -- test converting data.frame to R with proper escaping of types
+
+class TestUnits(unittest.TestCase):
+    """Basic unit testing for pygg"""
+    def testIsDataFrame(self):
+        """Test that is_pandas_df works"""
+        df = pandas.read_csv(StringIO.StringIO(IRIS_DATA_CSV))
+        self.assertTrue(pygg.is_pandas_df(df))
+        self.assertTrue(pygg.is_pandas_df(df[0:1]))
+        self.assertFalse(pygg.is_pandas_df(df.SepalLength))
+        self.assertFalse(pygg.is_pandas_df(1))
+        self.assertFalse(pygg.is_pandas_df(1.0))
+        self.assertFalse(pygg.is_pandas_df([]))
+        self.assertFalse(pygg.is_pandas_df([1]))
+        self.assertFalse(pygg.is_pandas_df({}))
+        self.assertFalse(pygg.is_pandas_df({'a': 1}))
+
+    def check_me(self, stmt, expectation):
+        print(stmt.r)
+        self.assertEquals(stmt.r.replace(" ", ""), expectation)
+
+    def testDataPyWithDF(self):
+        df = pandas.DataFrame({'a': [1, 2], 'b': [3, 4]})
+        dffile, expr = pygg.data_py(df)
+        iodf = pandas.read_csv(dffile)
+        pdt.assert_frame_equal(df, iodf)
+
+    def testDataPyLoadStmtPlain(self):
+        df = pandas.DataFrame({'a': [1, 2], 'b': [3, 4]})
+        dffile, expr = pygg.data_py(df)
+        self.assertEquals(expr,
+                          'data = read.csv("{}",sep=",")'.format(dffile))
+
+    def testDataPyLoadStmtArgs(self):
+        df = pandas.DataFrame({'a': [1, 2], 'b': [3, 4]})
+        dffile, expr = pygg.data_py(df, 1, kwd=2)
+        expected = 'data = read.csv("{}",1,kwd=2,sep=",")'.format(dffile)
+        self.assertEquals(expr, expected)
+
+    def testDataPyWithDict(self):
+        src = {'a': [1, 2], 'b': [3, 4]}
+        dffile, expr = pygg.data_py(src)
+        iodf = pandas.read_csv(dffile)
+        pdt.assert_frame_equal(pandas.DataFrame(src), iodf)
+
+    def testDataPyWithListOfDict(self):
+        src = [{'a': 1, 'b': 3}, {'a': 2, 'b': 4}]
+        dffile, expr = pygg.data_py(src)
+        iodf = pandas.read_csv(dffile)
+        pdt.assert_frame_equal(pandas.DataFrame({'a': [1, 2], 'b': [3, 4]}),
+                               pandas.read_csv(dffile))
+
+    def testDataPyWithString(self):
+        src = "my.csv"
+        dffile, expr = pygg.data_py(src)
+        self.assertEquals(dffile, src)
+        self.assertEquals(expr, 'data = read.csv("{}",sep=",")'.format(src))
+
+    def testGGStatementToR(self):
+        """Test that GGStatement converts to R properly"""
+        self.check_me(pygg.geom_point(), "geom_point()")
+        self.check_me(pygg.geom_point(size=1.0), "geom_point(size=1.0)")
+        self.check_me(pygg.geom_point(size=1.0, alpha=2.0),
+                      "geom_point(alpha=2.0,size=1.0)")
+
+    def testGGStatementsToR(self):
+        """Test that GGStatement converts to R properly"""
+        self.check_me(pygg.geom_point(), "geom_point()")
+        self.check_me(pygg.geom_bar(), "geom_bar()")
+        self.check_me(pygg.geom_point() + pygg.geom_bar(),
+                      "geom_point()+geom_bar()")
+        self.check_me(pygg.geom_bar() + pygg.geom_point(),
+                      "geom_bar()+geom_point()")
+
+    def testPython2RTypes(self):
+        """Test GGStatement converts many python types properly"""
+        self.check_me(pygg.geom_point(a=1), "geom_point(a=1)")
+        self.check_me(pygg.geom_point(a=None), "geom_point(a=NA)")
+        self.check_me(pygg.geom_point(a=1.0), "geom_point(a=1.0)")
+        self.check_me(pygg.geom_point(a=1e-2), "geom_point(a=0.01)")
+        self.check_me(pygg.geom_point(a="foo"), 'geom_point(a=foo)')
+        self.check_me(pygg.geom_point(a=pygg.esc("foo")), 'geom_point(a="foo")')
+        self.check_me(pygg.geom_point(a=True), 'geom_point(a=TRUE)')
+        self.check_me(pygg.geom_point(a=False), 'geom_point(a=FALSE)')
+        self.check_me(pygg.geom_point(a=[1, 2]), 'geom_point(a=c(1,2))')
+        self.check_me(pygg.geom_point(a={'list1': 1, 'list2': 2}),
+                      'geom_point(a=list(list1=1,list2=2))')
+        self.check_me(pygg.geom_point(1, a=2.0, b=[3, 4],
+                                      c={'list1': pygg.esc('s1'), 'list2': 2}),
+                      'geom_point(1,a=2.0,b=c(3,4),c=list(list1="s1",list2=2))')
+
+    def testPython2RStringEsc(self):
+        """Test GGStatement escapes strings properly"""
+        self.check_me(pygg.geom_point(a="b"), 'geom_point(a=b)')
+        self.check_me(pygg.geom_point(a='b'), 'geom_point(a=b)')
+        self.check_me(pygg.geom_point(a="'b'"), 'geom_point(a=\'b\')')
+        self.check_me(pygg.geom_point(a='"b"'), 'geom_point(a="b")')
+        self.check_me(pygg.geom_point(a={'k': pygg.esc("v")}),
+                                      'geom_point(a=list(k="v"))')
+        self.check_me(pygg.geom_point(a=[pygg.esc("a"), pygg.esc("b")]),
+                                      'geom_point(a=c("a","b"))')
 
 
-class TestPygg(unittest.TestCase):
+class TestIntegration(unittest.TestCase):
     """Basic unit testing for pygg"""
     def testE2E(self):
         """Test end-to-end creation of figures with outputs to pdf and png"""
@@ -16,25 +119,37 @@ class TestPygg(unittest.TestCase):
         p += pygg.scale_x_log10()
         p += pygg.theme_bw()
 
-        self.check_ggsave(p, ext=".pdf")
-        self.check_ggsave(p, ext=".png")
-        self.check_ggsave(p, ext=".jpg")
+        self.check_ggsave(p, None, ext=".pdf")
+        self.check_ggsave(p, None, ext=".png")
+        self.check_ggsave(p, None, ext=".jpg")
 
     def testPandasDF(self):
         data = pandas.read_csv(StringIO.StringIO(IRIS_DATA_CSV))
         self.assertIsInstance(data, pandas.DataFrame)
-        p = pygg.ggplot(pygg.data_py(data),
+        p = pygg.ggplot('data',
                         pygg.aes(x='SepalLength', y='PetalLength', color='Name'))
         p += pygg.geom_point()
         p += pygg.geom_smooth()
-        p += pygg.ggtitle('"Test title"')
-        self.check_ggsave(p)
+        p += pygg.ggtitle(pygg.esc('Test title'))
+        self.check_ggsave(p, data)
 
-    def check_ggsave(self, plotobj, ext='.pdf'):
+    def testLimits(self):
+        p = pygg.ggplot('diamonds', pygg.aes(x='carat', y='price', color='clarity'))
+        p += pygg.geom_point(alpha=0.5, size = .75)
+        p += pygg.scale_x_log10(limits=[1, 2])
+        self.check_ggsave(p, None)
+
+    def check_ggsave(self, plotobj, data, ext='.pdf'):
         tmpfile = tempfile.NamedTemporaryFile(suffix=ext).name
-        pygg.ggsave(tmpfile, plotobj, quiet=True)
+        pygg.ggsave(tmpfile, plotobj, data=data, quiet=True)
         self.assertTrue(os.path.exists(tmpfile))
         self.assertTrue(os.path.getsize(tmpfile) > 0)
+
+    def testBadGGPlotFails(self):
+        p = pygg.ggplot('diamonds', pygg.aes(x='MISSING')) + pygg.geom_point()
+        with self.assertRaises(ValueError):
+            tmpfile = tempfile.NamedTemporaryFile(suffix=".png").name
+            pygg.ggsave(tmpfile, p, data=None, quiet=True)
 
 
 IRIS_DATA_CSV = """SepalLength,SepalWidth,PetalLength,PetalWidth,Name
