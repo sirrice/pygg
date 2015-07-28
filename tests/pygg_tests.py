@@ -7,7 +7,23 @@ import os.path
 import pygg
 import pandas.util.testing as pdt
 
-# TODO -- test converting data.frame to R with proper escaping of types
+
+class IPythonTests(unittest.TestCase):
+    """Test IPython integration"""
+    def setUp(self):
+        """Setup IPython tests, skipping if IPython isn't present"""
+        try:
+            import IPython
+        except ImportError:
+            self.skipTest("Couldn't import IPython")
+    def testIPython(self):
+        """Test that gg_ipython returns a IPython png formatted image"""
+        p = pygg.ggplot('diamonds', pygg.aes(x='carat', y='price'))
+        p += pygg.geom_point()
+        img = pygg.gg_ipython(p, data=None)
+        self.assertIsNotNone(img.data)
+        self.assertEqual(img.format, "png")
+
 
 class TestUnits(unittest.TestCase):
     """Basic unit testing for pygg"""
@@ -140,17 +156,16 @@ class TestIntegration(unittest.TestCase):
         self.check_ggsave(p, None)
 
     def testFacets1(self):
-        p = pygg.ggplot('diamonds', pygg.aes(x='carat', y='price')) 
+        p = pygg.ggplot('diamonds', pygg.aes(x='carat', y='price'))
         p += pygg.geom_point()
         p += pygg.facet_grid("clarity~.")
         self.check_ggsave(p, None)
 
     def testFacets2(self):
-        p = pygg.ggplot('diamonds', pygg.aes(x='carat', y='price')) 
+        p = pygg.ggplot('diamonds', pygg.aes(x='carat', y='price'))
         p += pygg.geom_point()
         p += pygg.facet_wrap("~clarity")
         self.check_ggsave(p, None)
-
 
     def check_ggsave(self, plotobj, data, ext='.pdf'):
         tmpfile = tempfile.NamedTemporaryFile(suffix=ext).name

@@ -277,6 +277,33 @@ def ggsave(name, plot, data, *args, **kwargs):
     return prog
 
 
+def gg_ipython(plot, data, *args, **kwargs):
+    """Render pygg in an IPython notebook
+
+    Allows one to say things like:
+
+    import pygg
+    p = pygg.ggplot('diamonds', pygg.aes(x='carat', y='price', color='clarity'))
+    p += pygg.geom_point(alpha=0.5, size = 2)
+    p += pygg.scale_x_log10(limits=[1, 2])
+    pygg.gg_ipython(p, data=None, quiet=True)
+
+    directly in an IPython notebook and see the resulting ggplot2 image
+    displayed inline.  This function is print a warning if the IPython library
+    cannot be imported.  The ggplot2 image is rendered as a PNG and not
+    as a vectorized graphics object right now.
+
+    """
+    try:
+        import IPython.display
+        tmp_image_filename = tempfile.NamedTemporaryFile(suffix='.png').name
+        ggsave(name=tmp_image_filename, plot=plot, data=data, quiet=True,
+               *args, **kwargs)
+        return IPython.display.Image(filename=tmp_image_filename)
+    except ImportError:
+        print "Could't load IPython library; integration is disabled"
+
+
 def execute_r(prog, quiet):
     """Run the R code prog an R subprocess
 
