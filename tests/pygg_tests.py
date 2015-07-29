@@ -41,7 +41,6 @@ class TestUnits(unittest.TestCase):
         self.assertFalse(pygg.is_pandas_df({'a': 1}))
 
     def check_me(self, stmt, expectation):
-        print(stmt.r)
         self.assertEquals(stmt.r.replace(" ", ""), expectation)
 
     def testDataPyWithDF(self):
