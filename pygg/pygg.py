@@ -296,9 +296,11 @@ def gg_ipython(plot, data, *args, **kwargs):
     """
     try:
         import IPython.display
-        tmp_image_filename = tempfile.NamedTemporaryFile(suffix='.png').name
-        ggsave(name=tmp_image_filename, plot=plot, data=data, quiet=True,
-               *args, **kwargs)
+        tmp_image_filename = tempfile.NamedTemporaryFile(suffix='.jpg').name
+        # Quiet by default
+        kwargs['quiet'] = kwargs.get('quiet', True)
+        ggsave(name=tmp_image_filename, plot=plot, data=data,
+               dpi=600, *args, **kwargs)
         return IPython.display.Image(filename=tmp_image_filename)
     except ImportError:
         print "Could't load IPython library; integration is disabled"
