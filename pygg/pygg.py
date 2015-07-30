@@ -236,11 +236,12 @@ def ggsave(name, plot, data, *args, **kwargs):
         'height': 8,
         'scale': 1
     }
-    keys_to_rm = ["prefix", "quiet"]
+    keys_to_rm = ["prefix", "quiet", "postfix"]
     varname = 'p'
 
     # process arguments
     prefix = kwargs.get('prefix', '')
+    postfix = kwargs.get('postfix', '')
     quiet = kwargs.get("quiet", False)
     kwargs = {k: v for k, v in kwargs.iteritems()
               if v is not None and k not in keys_to_rm}
@@ -258,10 +259,11 @@ def ggsave(name, plot, data, *args, **kwargs):
         # format the python data object
         data_src = data_py(data)[1]
 
-    prog = "%(header)s\n%(prefix)s\n%(data)s\n%(varname)s = %(prog)s" % {
+    prog = "%(header)s\n%(prefix)s\n%(data)s\n%(postfix)\n%(varname)s = %(prog)s" % {
         'header': "library(ggplot2)",
         'data': data_src,
         'prefix': prefix,
+        'postfix': postfix,
         'varname': varname,
         'prog': plot.r
     }
