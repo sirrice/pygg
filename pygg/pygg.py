@@ -14,6 +14,8 @@ import pandas
 quote1re = re.compile('"')
 quote2re = re.compile("'")
 
+R_IMAGE_SIZE = 7            # in inches
+IPYTHON_IMAGE_SIZE = 800    # in pixels
 
 def esc(mystr):
     """Escape string so that it remains a string when converted to R"""
@@ -277,7 +279,8 @@ def ggsave(name, plot, data, *args, **kwargs):
     return prog
 
 
-def gg_ipython(plot, data, *args, **kwargs):
+def gg_ipython(plot, data, width=IPYTHON_IMAGE_SIZE, height=None,
+               *args, **kwargs):
     """Render pygg in an IPython notebook
 
     Allows one to say things like:
@@ -293,17 +296,46 @@ def gg_ipython(plot, data, *args, **kwargs):
     cannot be imported.  The ggplot2 image is rendered as a PNG and not
     as a vectorized graphics object right now.
 
+    Note that by default gg_ipython sets the output height and width to
+    IPYTHON_IMAGE_SIZE pixels as this is a reasonable default size for a
+    browser-based notebook.  Height is by default None, indicating that height
+    should be set to the same value as width.  It is possible to adjust
+    the aspect ratio of the output by providing non-None values for both
+    width and height
+
     """
     try:
         import IPython.display
         tmp_image_filename = tempfile.NamedTemporaryFile(suffix='.jpg').name
         # Quiet by default
         kwargs['quiet'] = kwargs.get('quiet', True)
+
+        if width is None:
+            raise ValueError("Width cannot be None")
+        height = height or width
+        w_in, h_in = size_r_img_inches(width, height)
         ggsave(name=tmp_image_filename, plot=plot, data=data,
-               dpi=600, *args, **kwargs)
-        return IPython.display.Image(filename=tmp_image_filename)
+               dpi=600, width=w_in, height=h_in, units=esc('in'),
+               *args, **kwargs)
+        return IPython.display.Image(filename=tmp_image_filename,
+                                     width=width, height=height)
     except ImportError:
         print "Could't load IPython library; integration is disabled"
+
+
+def size_r_img_inches(width, height):
+    """Compute the width and height for an R image for display in IPython
+
+    Neight width nor height can be null but should be integer pixel values > 0.
+
+    Returns a tuple of (width, height) that should be used by ggsave in R to
+    produce an appropriately sized jpeg/png/pdf image with the right aspect
+    ratio.  The returned values are in inches.
+
+    """
+    # both width and height are given
+    aspect_ratio = height / (1.0 * width)
+    return R_IMAGE_SIZE, round(aspect_ratio * R_IMAGE_SIZE, 2)
 
 
 def execute_r(prog, quiet):

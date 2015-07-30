@@ -16,14 +16,35 @@ class IPythonTests(unittest.TestCase):
             import IPython
         except ImportError:
             self.skipTest("Couldn't import IPython")
+
+    def testSizing(self):
+        """Test that computing R sizes works properly"""
+        self.assertAlmostEqual(pygg.size_r_img_inches(width=800, height=800),
+                               (pygg.R_IMAGE_SIZE, pygg.R_IMAGE_SIZE))
+        self.assertAlmostEqual(pygg.size_r_img_inches(width=400, height=400),
+                               (pygg.R_IMAGE_SIZE, pygg.R_IMAGE_SIZE))
+        self.assertAlmostEqual(pygg.size_r_img_inches(width=800, height=400),
+                               (pygg.R_IMAGE_SIZE, pygg.R_IMAGE_SIZE / 2.))
+        self.assertAlmostEqual(pygg.size_r_img_inches(width=400, height=800),
+                               (pygg.R_IMAGE_SIZE, pygg.R_IMAGE_SIZE * 2.))
+
     def testIPython(self):
-        """Test that gg_ipython returns a IPython png formatted image"""
+        """Test that gg_ipython returns a IPython formatted Image"""
         p = pygg.ggplot('diamonds', pygg.aes(x='carat', y='price'))
         p += pygg.geom_point()
         img = pygg.gg_ipython(p, data=None)
         self.assertIsNotNone(img.data)
-        self.assertEqual(img.format, "png")
+        self.assertEqual(img.format, "jpeg")
+        self.assertEqual(img.width, pygg.IPYTHON_IMAGE_SIZE)
+        self.assertEqual(img.height, pygg.IPYTHON_IMAGE_SIZE)
 
+        img = pygg.gg_ipython(p, data=None, width=600, height=400)
+        self.assertEqual(img.width, 600)
+        self.assertEqual(img.height, 400)
+
+        img = pygg.gg_ipython(p, data=None, width=600)
+        self.assertEqual(img.width, 600)
+        self.assertEqual(img.height, 600)
 
 class TestUnits(unittest.TestCase):
     """Basic unit testing for pygg"""
