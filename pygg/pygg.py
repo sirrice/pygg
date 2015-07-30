@@ -259,7 +259,7 @@ def ggsave(name, plot, data, *args, **kwargs):
         # format the python data object
         data_src = data_py(data)[1]
 
-    prog = "%(header)s\n%(prefix)s\n%(data)s\n%(postfix)\n%(varname)s = %(prog)s" % {
+    prog = "%(header)s\n%(prefix)s\n%(data)s\n%(postfix)s\n%(varname)s = %(prog)s" % {
         'header': "library(ggplot2)",
         'data': data_src,
         'prefix': prefix,
