@@ -7,7 +7,44 @@ import os.path
 import pygg
 import pandas.util.testing as pdt
 
-# TODO -- test converting data.frame to R with proper escaping of types
+
+class IPythonTests(unittest.TestCase):
+    """Test IPython integration"""
+    def setUp(self):
+        """Setup IPython tests, skipping if IPython isn't present"""
+        try:
+            import IPython
+        except ImportError:
+            self.skipTest("Couldn't import IPython")
+
+    def testSizing(self):
+        """Test that computing R sizes works properly"""
+        self.assertAlmostEqual(pygg.size_r_img_inches(width=800, height=800),
+                               (pygg.R_IMAGE_SIZE, pygg.R_IMAGE_SIZE))
+        self.assertAlmostEqual(pygg.size_r_img_inches(width=400, height=400),
+                               (pygg.R_IMAGE_SIZE, pygg.R_IMAGE_SIZE))
+        self.assertAlmostEqual(pygg.size_r_img_inches(width=800, height=400),
+                               (pygg.R_IMAGE_SIZE, pygg.R_IMAGE_SIZE / 2.))
+        self.assertAlmostEqual(pygg.size_r_img_inches(width=400, height=800),
+                               (pygg.R_IMAGE_SIZE, pygg.R_IMAGE_SIZE * 2.))
+
+    def testIPython(self):
+        """Test that gg_ipython returns a IPython formatted Image"""
+        p = pygg.ggplot('diamonds', pygg.aes(x='carat', y='price'))
+        p += pygg.geom_point()
+        img = pygg.gg_ipython(p, data=None)
+        self.assertIsNotNone(img.data)
+        self.assertEqual(img.format, "jpeg")
+        self.assertEqual(img.width, pygg.IPYTHON_IMAGE_SIZE)
+        self.assertEqual(img.height, pygg.IPYTHON_IMAGE_SIZE)
+
+        img = pygg.gg_ipython(p, data=None, width=600, height=400)
+        self.assertEqual(img.width, 600)
+        self.assertEqual(img.height, 400)
+
+        img = pygg.gg_ipython(p, data=None, width=600)
+        self.assertEqual(img.width, 600)
+        self.assertEqual(img.height, 600)
 
 class TestUnits(unittest.TestCase):
     """Basic unit testing for pygg"""
@@ -25,7 +62,6 @@ class TestUnits(unittest.TestCase):
         self.assertFalse(pygg.is_pandas_df({'a': 1}))
 
     def check_me(self, stmt, expectation):
-        print(stmt.r)
         self.assertEquals(stmt.r.replace(" ", ""), expectation)
 
     def testDataPyWithDF(self):
@@ -140,17 +176,16 @@ class TestIntegration(unittest.TestCase):
         self.check_ggsave(p, None)
 
     def testFacets1(self):
-        p = pygg.ggplot('diamonds', pygg.aes(x='carat', y='price')) 
+        p = pygg.ggplot('diamonds', pygg.aes(x='carat', y='price'))
         p += pygg.geom_point()
         p += pygg.facet_grid("clarity~.")
         self.check_ggsave(p, None)
 
     def testFacets2(self):
-        p = pygg.ggplot('diamonds', pygg.aes(x='carat', y='price')) 
+        p = pygg.ggplot('diamonds', pygg.aes(x='carat', y='price'))
         p += pygg.geom_point()
         p += pygg.facet_wrap("~clarity")
         self.check_ggsave(p, None)
-
 
     def check_ggsave(self, plotobj, data, ext='.pdf'):
         tmpfile = tempfile.NamedTemporaryFile(suffix=ext).name
