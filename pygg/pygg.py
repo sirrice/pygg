@@ -236,11 +236,12 @@ def ggsave(name, plot, data, *args, **kwargs):
         'height': 8,
         'scale': 1
     }
-    keys_to_rm = ["prefix", "quiet"]
+    keys_to_rm = ["prefix", "quiet", "postfix"]
     varname = 'p'
 
     # process arguments
     prefix = kwargs.get('prefix', '')
+    postfix = kwargs.get('postfix', '')
     quiet = kwargs.get("quiet", False)
     kwargs = {k: v for k, v in kwargs.iteritems()
               if v is not None and k not in keys_to_rm}
@@ -258,10 +259,11 @@ def ggsave(name, plot, data, *args, **kwargs):
         # format the python data object
         data_src = data_py(data)[1]
 
-    prog = "%(header)s\n%(prefix)s\n%(data)s\n%(varname)s = %(prog)s" % {
+    prog = "%(header)s\n%(prefix)s\n%(data)s\n%(postfix)s\n%(varname)s = %(prog)s" % {
         'header': "library(ggplot2)",
         'data': data_src,
         'prefix': prefix,
+        'postfix': postfix,
         'varname': varname,
         'prog': plot.r
     }
@@ -502,6 +504,7 @@ scale_x_discrete = make_ggplot2_binding("scale_x_discrete")
 scale_y_discrete = make_ggplot2_binding("scale_y_discrete")
 xlim = make_ggplot2_binding("xlim")
 ylim = make_ggplot2_binding("ylim")
+coord_cartesian = make_ggplot2_binding("coord_cartesian")
 coord_fixed = make_ggplot2_binding("coord_fixed")
 coord_flip = make_ggplot2_binding("coord_flip")
 coord_map = make_ggplot2_binding("coord_map")
@@ -533,6 +536,7 @@ theme_bw = make_ggplot2_binding("theme_bw")
 theme_blank = make_ggplot2_binding("theme_blank")
 theme_grey = make_ggplot2_binding("theme_grey")
 theme_classic = make_ggplot2_binding("theme_classic")
+theme_text = make_ggplot2_binding("theme_text")
 aes = make_ggplot2_binding("aes")
 aes_all = make_ggplot2_binding("aes_all")
 aes_auto = make_ggplot2_binding("aes_auto")
