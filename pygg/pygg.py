@@ -29,8 +29,13 @@ def is_escaped(s):
     return False
 
 
-def _to_r(o, as_data=False):
-    """Helper function to convert python data structures to R equivalents"""
+def _to_r(o, as_data=False, level=0):
+    """Helper function to convert python data structures to R equivalents
+
+    TODO: a single model for transforming to r to handle
+    * function args
+    * lists as function args
+    """
     if o is None:
         return "NA"
     if isinstance(o, basestring):
@@ -41,10 +46,10 @@ def _to_r(o, as_data=False):
     elif isinstance(o, bool):
         return "TRUE" if o else "FALSE"
     elif isinstance(o, (list, tuple)):
-        inner = ",".join([_to_r(x, True) for x in o])
+        inner = ",".join([_to_r(x, True, level+1) for x in o])
         return "c({})".format(inner) if as_data else inner
     elif isinstance(o, dict):
-        inner = ",".join(["{}={}".format(k, _to_r(v, True))
+        inner = ",".join(["{}={}".format(k, _to_r(v, True, level+1))
                          for k, v in sorted(o.iteritems(), key=lambda x: x[0])])
         return "list({})".format(inner) if as_data else inner
     return str(o)
@@ -226,7 +231,9 @@ def ggsave(name, plot, data, *args, **kwargs):
 
       data: a python data object (list, dict, DataFrame) used to populate
         the `data` variable in R
-      prefix: string containing R code to run before the ggplot command
+      libs: list of library names to load in addition to ggplot2
+      prefix: string containing R code to run before any ggplot commands (including data loading)
+      postfix: string containing R code to run after data is loaded (e.g., if you want to rename variable names)
       quiet:  if Truthy, don't print out R program string
 
     """
@@ -236,12 +243,14 @@ def ggsave(name, plot, data, *args, **kwargs):
         'height': 8,
         'scale': 1
     }
-    keys_to_rm = ["prefix", "quiet", "postfix"]
+    keys_to_rm = ["prefix", "quiet", "postfix", 'libs']
     varname = 'p'
 
     # process arguments
     prefix = kwargs.get('prefix', '')
     postfix = kwargs.get('postfix', '')
+    libs = kwargs.get('libs', [])
+    libs = '\n'.join(["library(%s)" % lib for lib in libs])
     quiet = kwargs.get("quiet", False)
     kwargs = {k: v for k, v in kwargs.iteritems()
               if v is not None and k not in keys_to_rm}
@@ -259,8 +268,9 @@ def ggsave(name, plot, data, *args, **kwargs):
         # format the python data object
         data_src = data_py(data)[1]
 
-    prog = "%(header)s\n%(prefix)s\n%(data)s\n%(postfix)s\n%(varname)s = %(prog)s" % {
+    prog = "%(header)s\n%(libs)s\n%(prefix)s\n%(data)s\n%(postfix)s\n%(varname)s = %(prog)s" % {
         'header': "library(ggplot2)",
+        'libs': libs,
         'data': data_src,
         'prefix': prefix,
         'postfix': postfix,
