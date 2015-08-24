@@ -187,6 +187,14 @@ class TestIntegration(unittest.TestCase):
         p += pygg.facet_wrap("~clarity")
         self.check_ggsave(p, None)
 
+    def testLibs(self):
+        p = pygg.ggplot('diamonds', pygg.aes(x='carat', y='price'))
+        p += pygg.geom_point()
+        tmpfile = tempfile.NamedTemporaryFile(suffix='.pdf').name
+        pygg.ggsave(tmpfile, p, data=None, libs=['grid'], quiet=True)
+        self.assertTrue(os.path.exists(tmpfile))
+        self.assertTrue(os.path.getsize(tmpfile) > 0)
+
     def check_ggsave(self, plotobj, data, ext='.pdf'):
         tmpfile = tempfile.NamedTemporaryFile(suffix=ext).name
         pygg.ggsave(tmpfile, plotobj, data=data, quiet=True)
