@@ -222,7 +222,7 @@ def facet_grid(formula, *args, **kwargs):
 ###################################################
 
 
-def ggsave(name, plot, data, *args, **kwargs):
+def ggsave(name, plot, data=None, *args, **kwargs):
     """Save a GGStatements object to destination name
 
     @param name output file name.  if None, don't run R command

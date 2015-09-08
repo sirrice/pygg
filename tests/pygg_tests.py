@@ -195,6 +195,10 @@ class TestIntegration(unittest.TestCase):
         self.assertTrue(os.path.exists(tmpfile))
         self.assertTrue(os.path.getsize(tmpfile) > 0)
 
+    def testNativeRDataset(self):
+        p = pygg.ggplot('diamonds', pygg.aes(x='carat', y='carat')) + pygg.geom_point()
+        self.check_ggsave(p, None)
+
     def check_ggsave(self, plotobj, data, ext='.pdf'):
         tmpfile = tempfile.NamedTemporaryFile(suffix=ext).name
         pygg.ggsave(tmpfile, plotobj, data=data, quiet=True)
