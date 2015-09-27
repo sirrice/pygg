@@ -81,15 +81,17 @@ regarding datasets and how we deal with strings.
 In R, ggplot directly references the data frame object present in the runtime
 (e.g., `ggplot(<datasetname>, aes(...))`.   However, the python
 objects being plotted are not directly available in the R runtime.  
-We get around by providing a data object `data` argument to `ggsave`, which
-converts the data object to a suitable CSV file, writes it to a temp file,
+`pygg` provides two ways of loading datasets from Python into R.
+
+The primary way is to explicitly pass the data object  to `ggsave` using its `data` keyword argument.
+`ggsave` then converts the data object to a suitable CSV file, writes it to a temp file,
 and loads it into the `data` variable in R for use with the ggplot2 functions
 
-For example:
+For example (notice that the string `"data"` is passed to `ggplot()`):
 
         df = pandas.DataFrame(...)
-        p = ggplot(data, aes(...)) + geom_point()
-        ggsave(p, "out.pdf", data=df)
+        p = ggplot("data", aes(...)) + geom_point()
+        ggsave("out.pdf", p, data=df)
 
 In addition, we provide several convenience functions that generate
 the appropriate R code for common python dataset formats:
@@ -97,39 +99,69 @@ the appropriate R code for common python dataset formats:
 * **csv file**: if you have a CSV file already, provide the filename to data
 
 ```
-        p = ggplot(data, aes(...)) + geom_point()
-        ggsave(p, "out.pdf", data="file.csv")
+        p = ggplot("data", aes(...)) + geom_point()
+        ggsave("out.pdf", p, data="file.csv")
+
+        # or more explicitly, pass a wrapped object that represents the csv file:
+
+        ggsave("out.pdf", p, data=data_py("file.csv"))
+
 ```
 
 * **python object**: if your data is a python object in columnar (`{x: [1,2], y: [3,4]}`)
   or row (`[{x:1,y:3}, {x:2,y:4}]`) format
 
 ```
-        p = ggplot(data, aes(...)) + geom_point()
-        ggsave(p, "out.pdf", data={'x': [1,2], 'y': [3,4]})
+        p = ggplot("data", aes(...)) + geom_point()
+        ggsave("out.pdf", p, data={'x': [1,2], 'y': [3,4]})
 ```
 
 * **pandas dataframe**: if your data is a `pandas` data frame object already
   you can just provide the dataframe df directly to data
 
 ```
-        p = ggplot(data, aes(...)) + geom_point()
-        ggsave(p, "out.pdf", data=df)
+        p = ggplot("data", aes(...)) + geom_point()
+        ggsave("out.pdf", p, data=df)
 ```
 
 * **PostgresQL**: if your data is stored in a postgres database
 
 ```
-        p = ggplot(data, aes(...)) + geom_point()
-        ggsave(p, "out.pdf", data=data_sql('DBNAME', 'SELECT * FROM ...')
+        p = ggplot("data", aes(...)) + geom_point()
+        ggsave("out.pdf", p, data=data_sql('DBNAME', 'SELECT * FROM ...')
 ```
 
-* **existing R datasets**: can you refer to any dataframe object
+* **existing R datasets**: can you refer to any R dataframe object using the
+  first argument to `ggplot()`
 
 ```
         p = ggplot('diamonds', aes(...)) + geom_point()
-        ggsave(p, "out.pdf", data=None)
+        ggsave("out.pdf", p, data=None)
 ```
+
+#### Convenient `ggplot()` feature
+
+It feels silly to pass a dummy `"data"` string to `ggplot()` and then pass the object to
+`ggsave`.  We have extended the `ggplot()` call so it recognizes _non string python objects_
+and uses the data object by default during the `ggsave` call:
+
+        df = pandas.DataFrame(...)
+        p = ggplot(df, aes(...)) + geom_point()
+        ggsave("out.pdf", p)
+
+        p = ggplot(dict(x=[0,1], y=[3,4]), aes(x='x', y='y')) + geom_point()
+        ggsave("out.pdf", p)
+
+Note that unlike `ggsave`, it is not smart enough to distinguish string arguments that
+are R variable names and file names.  Thus, the following will lead to an error:
+
+        p = ggplot("data.csv", aes(x='x', y='y')) + geom_point()
+        ggsave("out.pdf", p)
+
+Simply wrap the filename with a `data_py()` call:
+
+        p = ggplot(data_py("data.csv"), aes(x='x', y='y')) + geom_point()
+        ggsave("out.pdf", p)
 
 
 ### String arguments
@@ -159,7 +191,21 @@ in a layer of quotes.  For convenience, we automatically provide wrapping
 for common functions:
 
         # "filename.pdf" is wrapped
-        ggsave(p, "filename.pdf")
+        ggsave("filename.pdf", p)
+
+### Convenience Functions
+
+`axis_labels()` is a shortcut for setting the x and y axis titles and scale types.
+The following names the x axis `"Dataset Size (MB)"`and sets it to log scale,
+names the y axis `Latency (sec)"`and is by default continuous scale, and
+sets the breaks for the x axis to `[0, 10, 100, 5000]`:
+
+        p = ggplot(...)
+        p += axis_labels("Dataset Size (MB)", 
+                        "Latency (sec)", 
+                        "log10",  
+                        xkwargs=dict(breaks=[0, 10, 100, 5000]))
+
 
 
 Questions

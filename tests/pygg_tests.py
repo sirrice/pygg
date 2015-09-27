@@ -66,38 +66,44 @@ class TestUnits(unittest.TestCase):
 
     def testDataPyWithDF(self):
         df = pandas.DataFrame({'a': [1, 2], 'b': [3, 4]})
-        dffile, expr = pygg.data_py(df)
+        datao = pygg.data_py(df)
+        dffile, expr = datao.fname, str(datao)
         iodf = pandas.read_csv(dffile)
         pdt.assert_frame_equal(df, iodf)
 
     def testDataPyLoadStmtPlain(self):
         df = pandas.DataFrame({'a': [1, 2], 'b': [3, 4]})
-        dffile, expr = pygg.data_py(df)
+        datao = pygg.data_py(df)
+        dffile, expr = datao.fname, str(datao)
         self.assertEquals(expr,
                           'data = read.csv("{}",sep=",")'.format(dffile))
 
     def testDataPyLoadStmtArgs(self):
         df = pandas.DataFrame({'a': [1, 2], 'b': [3, 4]})
-        dffile, expr = pygg.data_py(df, 1, kwd=2)
+        datao = pygg.data_py(df, 1, kwd=2)
+        dffile, expr = datao.fname, str(datao)
         expected = 'data = read.csv("{}",1,kwd=2,sep=",")'.format(dffile)
         self.assertEquals(expr, expected)
 
     def testDataPyWithDict(self):
         src = {'a': [1, 2], 'b': [3, 4]}
-        dffile, expr = pygg.data_py(src)
+        datao = pygg.data_py(src)
+        dffile, expr = datao.fname, str(datao)
         iodf = pandas.read_csv(dffile)
         pdt.assert_frame_equal(pandas.DataFrame(src), iodf)
 
     def testDataPyWithListOfDict(self):
         src = [{'a': 1, 'b': 3}, {'a': 2, 'b': 4}]
-        dffile, expr = pygg.data_py(src)
+        datao = pygg.data_py(src)
+        dffile, expr = datao.fname, str(datao)
         iodf = pandas.read_csv(dffile)
         pdt.assert_frame_equal(pandas.DataFrame({'a': [1, 2], 'b': [3, 4]}),
                                pandas.read_csv(dffile))
 
     def testDataPyWithString(self):
         src = "my.csv"
-        dffile, expr = pygg.data_py(src)
+        datao = pygg.data_py(src)
+        dffile, expr = datao.fname, str(datao)
         self.assertEquals(dffile, src)
         self.assertEquals(expr, 'data = read.csv("{}",sep=",")'.format(src))
 
@@ -169,6 +175,32 @@ class TestIntegration(unittest.TestCase):
         p += pygg.ggtitle(pygg.esc('Test title'))
         self.check_ggsave(p, data)
 
+    def testPandasDFggplot(self):
+        data = pandas.read_csv(StringIO.StringIO(IRIS_DATA_CSV))
+        self.assertIsInstance(data, pandas.DataFrame)
+        p = pygg.ggplot(data,
+                        pygg.aes(x='SepalLength', y='PetalLength', color='Name'))
+        p += pygg.geom_point()
+        p += pygg.geom_smooth()
+        p += pygg.ggtitle(pygg.esc('Test title'))
+        self.check_ggsave(p)
+
+    def testBasicDataggplot(self):
+        data = dict(x=range(10), y=range(10))
+        p = pygg.ggplot(data, pygg.aes(x='x', y='y'))
+        p += pygg.geom_point()
+        p += pygg.geom_smooth()
+        p += pygg.ggtitle(pygg.esc('Test title'))
+        self.check_ggsave(p)
+
+    def testBasicDataggplot(self):
+        data = [dict(x=x, y=y) for x, y in zip(range(10), range(10))]
+        p = pygg.ggplot(data, pygg.aes(x='x', y='y'))
+        p += pygg.geom_point()
+        p += pygg.geom_smooth()
+        p += pygg.ggtitle(pygg.esc('Test title'))
+        self.check_ggsave(p)
+
     def testLimits(self):
         p = pygg.ggplot('diamonds', pygg.aes(x='carat', y='price', color='clarity'))
         p += pygg.geom_point(alpha=0.5, size = .75)
@@ -199,7 +231,7 @@ class TestIntegration(unittest.TestCase):
         p = pygg.ggplot('diamonds', pygg.aes(x='carat', y='carat')) + pygg.geom_point()
         self.check_ggsave(p, None)
 
-    def check_ggsave(self, plotobj, data, ext='.pdf'):
+    def check_ggsave(self, plotobj, data=None, ext='.pdf'):
         tmpfile = tempfile.NamedTemporaryFile(suffix=ext).name
         pygg.ggsave(tmpfile, plotobj, data=data, quiet=True)
         self.assertTrue(os.path.exists(tmpfile))
