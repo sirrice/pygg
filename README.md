@@ -69,7 +69,7 @@ ggsave("test1.pdf", p+g, data=None)
 ```
 
 
-Quirks to be aware of
+Details, Utils, and Quirks
 =====================
 
 The library performs a simple syntactic translation from python
