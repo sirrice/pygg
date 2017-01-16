@@ -8,6 +8,7 @@ import re
 import subprocess
 import csv
 import tempfile
+from six import iteritems
 
 import pandas
 
@@ -38,7 +39,7 @@ def _to_r(o, as_data=False, level=0):
     """
     if o is None:
         return "NA"
-    if isinstance(o, basestring):
+    if isinstance(o, str):
         return o
     if hasattr(o, "r"):
         # bridge to @property r on GGStatement(s)
@@ -50,7 +51,7 @@ def _to_r(o, as_data=False, level=0):
         return "c({})".format(inner) if as_data else inner
     elif isinstance(o, dict):
         inner = ",".join(["{}={}".format(k, _to_r(v, True, level+1))
-                         for k, v in sorted(o.iteritems(), key=lambda x: x[0])])
+                         for k, v in sorted(iteritems(o), key=lambda x: x[0])])
         return "list({})".format(inner) if as_data else inner
     return str(o)
 
@@ -156,7 +157,7 @@ def data_sql(db, sql):
     """
     if not db:
         if sql:
-            print "ERR: -db option must be set if using -sql"
+            print("ERR: -db option must be set if using -sql")
         return ""
 
     cmd = """
@@ -195,7 +196,7 @@ def data_py(o, *args, **kwargs):
     data = read.csv(tmpfile, *args, **kwargs)
 
     """
-    if isinstance(o, basestring):
+    if isinstance(o, str):
         fname = o
     else:
         if not is_pandas_df(o):
@@ -221,7 +222,7 @@ def data_py(o, *args, **kwargs):
 
 def facet_wrap(formula, *args, **kwargs):
     if not formula:
-        print "WARN: facet_wrap got None"
+        print("WARN: facet_wrap got None")
         return None
 
     return GGStatement("facet_wrap", formula, *args, **kwargs)
@@ -229,7 +230,7 @@ def facet_wrap(formula, *args, **kwargs):
 
 def facet_grid(formula, *args, **kwargs):
     if not formula:
-        print "WARN: facet_grid got None"
+        print("WARN: facet_grid got None")
         return None
 
     return GGStatement("facet_grid", formula, *args, **kwargs)
@@ -272,7 +273,7 @@ def ggsave(name, plot, data=None, *args, **kwargs):
     libs = kwargs.get('libs', [])
     libs = '\n'.join(["library(%s)" % lib for lib in libs])
     quiet = kwargs.get("quiet", False)
-    kwargs = {k: v for k, v in kwargs.iteritems()
+    kwargs = {k: v for k, v in iteritems(kwargs)
               if v is not None and k not in keys_to_rm}
     kwdefaults.update(kwargs)
     kwargs = kwdefaults
@@ -283,7 +284,7 @@ def ggsave(name, plot, data=None, *args, **kwargs):
     if data is None:
         # Don't load anything, the data source is already present in R
         data_src = ''
-    elif isinstance(data, basestring) and 'RPostgreSQL' in data:
+    elif isinstance(data, str) and 'RPostgreSQL' in data:
         # Hack to allow through data_sql results
         data_src = data
     elif isinstance(data, GGData):
@@ -307,8 +308,8 @@ def ggsave(name, plot, data=None, *args, **kwargs):
         prog = "%s\n%s" % (prog, stmt.r)
 
     if not quiet:
-        print prog
-        print
+        print(prog)
+        print()
 
     if name:
         execute_r(prog, quiet)
@@ -356,7 +357,7 @@ def gg_ipython(plot, data, width=IPYTHON_IMAGE_SIZE, height=None,
         return IPython.display.Image(filename=tmp_image_filename,
                                      width=width, height=height)
     except ImportError:
-        print "Could't load IPython library; integration is disabled"
+        print("Could't load IPython library; integration is disabled")
 
 
 def size_r_img_inches(width, height):
@@ -429,8 +430,8 @@ def axis_labels(xtitle,
 
   """
 
-  exec "xfunc = scale_x_%s" % xsuffix
-  exec "yfunc = scale_y_%s" % ysuffix
+  exec("xfunc = scale_x_%s" % xsuffix)
+  exec("yfunc = scale_y_%s" % ysuffix)
   return (
     xfunc(name=esc(xtitle), **xkwargs) + 
     yfunc(name=esc(ytitle), **ykwargs)
@@ -452,7 +453,7 @@ def make_master_binding():
   ggplot = make_ggplot2_binding("ggplot")
   def _ggplot(data, *args, **kwargs):
     data_var = data
-    if not isinstance(data, basestring):
+    if not isinstance(data, str):
       data_var = "data"
     else:
       data = None
