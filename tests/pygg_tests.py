@@ -1,8 +1,9 @@
 import unittest
-import StringIO
 import pandas
 import tempfile
 import os.path
+
+from io import StringIO
 
 import pygg
 import pandas.util.testing as pdt
@@ -50,7 +51,7 @@ class TestUnits(unittest.TestCase):
     """Basic unit testing for pygg"""
     def testIsDataFrame(self):
         """Test that is_pandas_df works"""
-        df = pandas.read_csv(StringIO.StringIO(IRIS_DATA_CSV))
+        df = pandas.read_csv(StringIO(IRIS_DATA_CSV))
         self.assertTrue(pygg.is_pandas_df(df))
         self.assertTrue(pygg.is_pandas_df(df[0:1]))
         self.assertFalse(pygg.is_pandas_df(df.SepalLength))
@@ -166,7 +167,7 @@ class TestIntegration(unittest.TestCase):
         self.check_ggsave(p, None, ext=".jpg")
 
     def testPandasDF(self):
-        data = pandas.read_csv(StringIO.StringIO(IRIS_DATA_CSV))
+        data = pandas.read_csv(StringIO(IRIS_DATA_CSV))
         self.assertIsInstance(data, pandas.DataFrame)
         p = pygg.ggplot('data',
                         pygg.aes(x='SepalLength', y='PetalLength', color='Name'))
@@ -176,7 +177,7 @@ class TestIntegration(unittest.TestCase):
         self.check_ggsave(p, data)
 
     def testPandasDFggplot(self):
-        data = pandas.read_csv(StringIO.StringIO(IRIS_DATA_CSV))
+        data = pandas.read_csv(StringIO(IRIS_DATA_CSV))
         self.assertIsInstance(data, pandas.DataFrame)
         p = pygg.ggplot(data,
                         pygg.aes(x='SepalLength', y='PetalLength', color='Name'))
@@ -244,7 +245,7 @@ class TestIntegration(unittest.TestCase):
             pygg.ggsave(tmpfile, p, data=None, quiet=True)
 
 
-IRIS_DATA_CSV = """SepalLength,SepalWidth,PetalLength,PetalWidth,Name
+IRIS_DATA_CSV = u"""SepalLength,SepalWidth,PetalLength,PetalWidth,Name
 5.1,3.5,1.4,0.2,Iris-setosa
 4.9,3.0,1.4,0.2,Iris-setosa
 4.7,3.2,1.3,0.2,Iris-setosa

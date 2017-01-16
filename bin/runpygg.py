@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
 try:
   activate_this = './bin/activate_this.py'
@@ -94,10 +94,10 @@ def main(c, prefix, csv, db, sql, o, w, h, scale):
 
   c = "plot = %s" % c
   if o:
-    exec c
+    exec(c)
     plot.save(o, **kwargs)
   else:
-    print c
+    print(c)
 
 
 if __name__ == "__main__":

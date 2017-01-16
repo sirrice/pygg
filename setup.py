@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 try:
     from setuptools import setup, find_packages
 except ImportError:
@@ -20,6 +20,6 @@ setup(name="pygg",
         'bin/runpygg.py'
       ],
       install_requires = [
-        'click', 'pandas'
+        'six', 'click', 'pandas'
       ],
       keywords= "")
