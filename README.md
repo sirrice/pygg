@@ -229,3 +229,5 @@ really really good.
 * **[pyggplot](http://pypi.python.org/pypi/pyggplot/)**: Pyggplot does not adhere
 strictly to R's ggplot syntax but pythonifies it, making it harder to transpose
 ggplot2 examples. Also pyggplot requires rpy2.
+
+* **[plotnine](https://github.com/has2k1/plotnine)**: another implementation of ggplot2 in Python
