@@ -1,1 +1,1 @@
-from pygg import *
+from .pygg import *

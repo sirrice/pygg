@@ -1,5 +1,5 @@
 import unittest
-import StringIO
+import io
 import pandas
 import tempfile
 import os.path
@@ -50,7 +50,7 @@ class TestUnits(unittest.TestCase):
     """Basic unit testing for pygg"""
     def testIsDataFrame(self):
         """Test that is_pandas_df works"""
-        df = pandas.read_csv(StringIO.StringIO(IRIS_DATA_CSV))
+        df = pandas.read_csv(io.StringIO(IRIS_DATA_CSV))
         self.assertTrue(pygg.is_pandas_df(df))
         self.assertTrue(pygg.is_pandas_df(df[0:1]))
         self.assertFalse(pygg.is_pandas_df(df.SepalLength))
@@ -62,7 +62,7 @@ class TestUnits(unittest.TestCase):
         self.assertFalse(pygg.is_pandas_df({'a': 1}))
 
     def check_me(self, stmt, expectation):
-        self.assertEquals(stmt.r.replace(" ", ""), expectation)
+        self.assertEqual(stmt.r.replace(" ", ""), expectation)
 
     def testDataPyWithDF(self):
         df = pandas.DataFrame({'a': [1, 2], 'b': [3, 4]})
@@ -75,7 +75,7 @@ class TestUnits(unittest.TestCase):
         df = pandas.DataFrame({'a': [1, 2], 'b': [3, 4]})
         datao = pygg.data_py(df)
         dffile, expr = datao.fname, str(datao)
-        self.assertEquals(expr,
+        self.assertEqual(expr,
                           'data = read.csv("{}",sep=",")'.format(dffile))
 
     def testDataPyLoadStmtArgs(self):
@@ -83,7 +83,7 @@ class TestUnits(unittest.TestCase):
         datao = pygg.data_py(df, 1, kwd=2)
         dffile, expr = datao.fname, str(datao)
         expected = 'data = read.csv("{}",1,kwd=2,sep=",")'.format(dffile)
-        self.assertEquals(expr, expected)
+        self.assertEqual(expr, expected)
 
     def testDataPyWithDict(self):
         src = {'a': [1, 2], 'b': [3, 4]}
@@ -104,8 +104,8 @@ class TestUnits(unittest.TestCase):
         src = "my.csv"
         datao = pygg.data_py(src)
         dffile, expr = datao.fname, str(datao)
-        self.assertEquals(dffile, src)
-        self.assertEquals(expr, 'data = read.csv("{}",sep=",")'.format(src))
+        self.assertEqual(dffile, src)
+        self.assertEqual(expr, 'data = read.csv("{}",sep=",")'.format(src))
 
     def testGGStatementToR(self):
         """Test that GGStatement converts to R properly"""
@@ -166,7 +166,7 @@ class TestIntegration(unittest.TestCase):
         self.check_ggsave(p, None, ext=".jpg")
 
     def testPandasDF(self):
-        data = pandas.read_csv(StringIO.StringIO(IRIS_DATA_CSV))
+        data = pandas.read_csv(io.StringIO(IRIS_DATA_CSV))
         self.assertIsInstance(data, pandas.DataFrame)
         p = pygg.ggplot('data',
                         pygg.aes(x='SepalLength', y='PetalLength', color='Name'))
@@ -176,7 +176,7 @@ class TestIntegration(unittest.TestCase):
         self.check_ggsave(p, data)
 
     def testPandasDFggplot(self):
-        data = pandas.read_csv(StringIO.StringIO(IRIS_DATA_CSV))
+        data = pandas.read_csv(io.StringIO(IRIS_DATA_CSV))
         self.assertIsInstance(data, pandas.DataFrame)
         p = pygg.ggplot(data,
                         pygg.aes(x='SepalLength', y='PetalLength', color='Name'))
@@ -186,7 +186,7 @@ class TestIntegration(unittest.TestCase):
         self.check_ggsave(p)
 
     def testBasicDataggplot(self):
-        data = dict(x=range(10), y=range(10))
+        data = dict(x=list(range(10)), y=list(range(10)))
         p = pygg.ggplot(data, pygg.aes(x='x', y='y'))
         p += pygg.geom_point()
         p += pygg.geom_smooth()
@@ -194,7 +194,7 @@ class TestIntegration(unittest.TestCase):
         self.check_ggsave(p)
 
     def testBasicDataggplot(self):
-        data = [dict(x=x, y=y) for x, y in zip(range(10), range(10))]
+        data = [dict(x=x, y=y) for x, y in zip(list(range(10)), list(range(10)))]
         p = pygg.ggplot(data, pygg.aes(x='x', y='y'))
         p += pygg.geom_point()
         p += pygg.geom_smooth()

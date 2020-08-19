@@ -19,7 +19,7 @@ ggsave("test2.pdf", p, width=8, height=6)
 # (p+g).save("test2.pdf", prefix=prefix)
 
 # Example using python columnar data
-data = {'x': range(10), 'y': range(10, 20)}
+data = {'x': list(range(10)), 'y': list(range(10, 20))}
 p = ggplot(data, aes('x', 'y'))
 ggsave("test3.pdf", p+geom_point(), quiet=False)
 
@@ -30,7 +30,7 @@ ggsave("test4.pdf", p+geom_point(), quiet=False)
 
 # Example using python row oriented data
 from pandas import DataFrame
-data = DataFrame(data={'x': range(10), 'y': range(10)})
+data = DataFrame(data={'x': list(range(10)), 'y': list(range(10))})
 p = ggplot(data, aes('x', 'y'))
 ggsave("test5.pdf", p+geom_point(), quiet=False)
 

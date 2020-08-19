@@ -2,7 +2,7 @@
 
 try:
   activate_this = './bin/activate_this.py'
-  execfile(activate_this, dict(__file__=activate_this))
+  exec(compile(open(activate_this, "rb").read(), activate_this, 'exec'), dict(__file__=activate_this))
 except:
   pass
 
@@ -77,7 +77,7 @@ def main(c, prefix, csv, db, sql, o, w, h, scale):
   """
 
   if not c: 
-    print "no command.  exiting"
+    print("no command.  exiting")
     return
 
   kwargs = {
@@ -94,10 +94,10 @@ def main(c, prefix, csv, db, sql, o, w, h, scale):
 
   c = "plot = %s" % c
   if o:
-    exec c
+    exec(c)
     plot.save(o, **kwargs)
   else:
-    print c
+    print(c)
 
 
 if __name__ == "__main__":
