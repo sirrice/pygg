@@ -432,9 +432,27 @@ def axis_labels(xtitle,
                        xkwargs=dict(breaks=[0, 10, 100, 5000]))
 
   """
+  xlookup = dict(
+      continuous = scale_x_continuous,
+      date = scale_x_date,
+      datetime = scale_x_datetime,
+      discrete = scale_x_discrete,
+      log10 = scale_x_log10,
+      reverse = scale_x_reverse,
+      sqrt = scale_x_sqrt
+  )
+  ylookup = dict(
+      continuous = scale_y_continuous,
+      date = scale_y_date,
+      datetime = scale_y_datetime,
+      discrete = scale_y_discrete,
+      log10 = scale_y_log10,
+      reverse = scale_y_reverse,
+      sqrt = scale_y_sqrt
+  )
 
-  exec("xfunc = scale_x_%s" % xsuffix)
-  exec("yfunc = scale_y_%s" % ysuffix)
+  xfunc = xlookup.get(xsuffix, scale_x_continuous)
+  yfunc = ylookup.get(ysuffix, scale_y_continuous)
   return (
     xfunc(name=esc(xtitle), **xkwargs) + 
     yfunc(name=esc(ytitle), **ykwargs)
