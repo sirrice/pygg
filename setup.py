@@ -7,7 +7,7 @@ except ImportError:
 from setuptools import setup, find_packages
 
 setup(name="pygg",
-      version="0.1.11",
+      version="0.1.12",
       description="ggplot2 syntax for python.  Runs R version of ggplot2 under the covers",
       license="MIT",
       author="Eugene Wu",
