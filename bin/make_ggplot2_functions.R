@@ -15,6 +15,8 @@ exclude = c(
   "ggplot_gtable",
   "ggplotGrob",
   "is.coord",
+  "is.Coord",
+  "is.ggproto",
   "is.facet",
   "is.ggplot",
   "is.theme",
