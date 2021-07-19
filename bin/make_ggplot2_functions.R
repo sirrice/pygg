@@ -11,6 +11,7 @@ exclude = c(
   "fortify",
   "ggstructure",
   "gg_dep",
+  "ggplot",
   "ggplot_build",
   "ggplot_gtable",
   "ggplotGrob",
